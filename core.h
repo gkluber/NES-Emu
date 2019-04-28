@@ -20,9 +20,9 @@ namespace Core
 	uint16_t pc; // Program counter
 	uint8_t sp; // Stack pointer
 	
-	uint8_t a; // Accumulator
-	uint8_t x; // Index register X
-	uint8_t y; // Index register Y
+	int8_t a; // Accumulator
+	int8_t x; // Index register X
+	int8_t y; // Index register Y
 	
 	uint8_t mem[65536];
 	

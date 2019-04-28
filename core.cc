@@ -99,54 +99,63 @@ namespace Core
 	// Register instructions //
 	///////////////////////////
 	
+	// all take exactly 2 cycles
 	// Affect the flags N and Z
 	
 	inline void TAX()
 	{
-		a = x;
-		if(a == 0)
-			p.z = true;
-		if(a < 0)
-			p.n = true;
+		x = a;
+		p.z = x == 0;
+		p.n = x < 0;
 	}
 	
 	inline void TXA()
 	{
-		
+		a = x;
+		p.z = a == 0;
+		p.n = a < 0;
 	}
 	
 	inline void DEX()
-	{
-		
+	{ 
+		x--;
+		p.z = x == 0;
+		p.n = x < 0;
 	}
 	
 	inline void INX()
-	{
-		
+	{	
+		x++;
+		p.z = x == 0;
+		p.n = x < 0;
 	}
 	
 	inline void TAY()
 	{
-		a = y;
-		if(a == 0)
-			p.z = true;
-		if(a < 0)
-			p.n = true;
+		y = a;
+		p.z = y == 0;
+		p.n = y < 0;
 	}
 	
 	inline void TYA()
 	{
-		
+		a = y;
+		p.z = a == 0;
+		p.n = a < 0;
 	}
 	
 	inline void DEY()
 	{
-		
+		y--;
+		p.z = y == 0;
+		p.n = y < 0;
 	}
 
 	inline void INY()
 	{
-		
+		y++;
+		p.z = y == 0;
+		p.n = y < 0;
 	}
 		
 	void execute()
@@ -185,12 +194,49 @@ namespace Core
 					TAX();
 					break;
 				}
+                case 0x8a:
+                {
+                    pc++;
+                    TXA();
+                    break;
+                }
+                case 0xca:
+                {
+                    pc++;
+                    DEX();
+                    break;
+                }
+                case 0xe8:
+                {
+                    pc++;
+                    INX();
+                    break;
+                }
 				case 0xa8:
 				{
 					pc++;
 					TAY();
 					break;
 				}
+                case 0x98:
+                {
+                    pc++;
+                    TYA();
+                    break;
+                }
+                case 0x88:
+                {
+                    pc++;
+                    DEY();
+                    break;
+                }
+                case 0xc8:
+                {
+                    pc++;
+                    INY();
+                    break;
+                }
+                
 				default:
 				{
 					printf("Encountered invalid opcode %x on line %x!\n", opcode, pc);
