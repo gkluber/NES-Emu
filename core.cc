@@ -16,32 +16,38 @@ namespace Core
 		
 	inline void BPL(int8_t d)
 	{
-		
+		if(!p.n)
+			pc += d;	
 	}
 	
 	inline void BMI(int8_t d)
 	{
-		
+		if(p.n)
+			pc += d;	
 	}
 
 	inline void BVC(int8_t d)
 	{
-		
+		if(!p.v)
+			pc += d;	
 	}
 	
 	inline void BVS(int8_t d)
 	{
-		
+		if(p.v)
+			pc += d;	
 	}
 	
 	inline void BCC(int8_t d)
 	{
-		
+		if(!p.c)
+			pc += d;	
 	}
 	
 	inline void BCS(int8_t d)
 	{
-		
+		if (p.c)
+			pc += d;	
 	}
 	
 	inline void BNE(int8_t d)
@@ -164,32 +170,48 @@ namespace Core
 
 	inline void TXS()
 	{
-		//
+		sp = x;
 	}
 	
 	inline void TSX()
 	{
-		//
+		x = sp;
+		p.z = sp == 0;
+		p.n = ((int8_t)sp) < 0;
 	}
 
 	inline void PHA()
 	{
-		//
+		mem[sp] = a;
+		sp--;
 	}
 	
 	inline void PLA()
 	{
-		//
+		sp++;
+		a = mem[sp];
+		p.z = sp == 0;
+		p.n = ((int8_t)sp) <0;
 	}
 
 	inline void PHP()
 	{
-		//
+		uint8_t statusReg = (p.n<<7) + (p.v<<6) + (p.b<<4) + (p.d<<3) + (p.i<<2) + (p.z<<1) + p.c;
+		mem[sp] = statusReg;
+		sp--; 
 	}
 
 	inline void PLP()
 	{
-		//
+		sp++;
+		uint8_t statusReg = mem[sp];
+		p.n = 0 != ((((uint8_t)1)<<7) & statusReg);
+		p.v = 0 != ((((uint8_t)1)<<6) & statusReg);
+		p.b = 0 != ((((uint8_t)1)<<4) & statusReg);
+		p.d = 0 != ((((uint8_t)1)<<3) & statusReg);
+		p.i = 0 != ((((uint8_t)1)<<2) & statusReg);
+		p.z = 0 != ((((uint8_t)1)<<1) & statusReg);
+		p.c = 0 != ((((uint8_t)1)) & statusReg);
 	}
 
 	int8_t bob;
@@ -263,6 +285,7 @@ namespace Core
 				
 			switch(opcode)
 			{
+				//branch instructions
 				case 0xd0:
 				{
 					pc += 2;
@@ -275,10 +298,40 @@ namespace Core
 					BEQ(mem[pc-1]);
 					break;
 				}
-				case 0x18:
+				case 0x10:
 				{
-					pc++;
-					CLC();
+					pc += 2;
+					BPL(mem[pc-1]);
+					break;
+				}
+				case 0x30:
+				{
+					pc += 2;
+					BMI(mem[pc-1]);
+					break;
+				}
+				case 0x50:
+				{
+					pc += 2;
+					BVC(mem[pc-1]);
+					break;
+				}
+				case 0x70:
+				{
+					pc += 2;
+					BVS(mem[pc-1]);
+					break;
+				}
+				case 0x90:
+				{
+					pc += 2;
+					BCC(mem[pc-1]);
+					break;
+				}
+				case 0xb0:
+				{
+					pc += 2;
+					BCS(mem[pc-1]);
 					break;
 				}
 
@@ -332,20 +385,7 @@ namespace Core
                     INY();
                     break;
                 }
-
-				// bitwise OR with Accumulator
-				case 0x09:
-				{
-					pc+=2;
-					ORA();
-					break;
-				}
-				case 0x0d:
-				{
-					pc += 3;
-					ORA();
-					break;
-				}
+				
 
 				//NOP
 				case 0xea:
@@ -435,9 +475,7 @@ namespace Core
 					PLP();
 					break;
 				}
-
-				//Branch Instructions
-				
+	
 
 
 

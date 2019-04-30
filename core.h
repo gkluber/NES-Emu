@@ -13,6 +13,7 @@ struct Flags
 	bool i; // Interrupt Disable
 	bool z; // Zero
 	bool c; // Carry
+	bool b; // Interrupt Control Bit
 };
 
 namespace Core
