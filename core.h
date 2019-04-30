@@ -32,4 +32,7 @@ namespace Core
 		
 	void execute();
 	void dumpcore();	
+	
+	void power();
+	void reset();
 };

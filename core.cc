@@ -512,4 +512,14 @@ namespace Core
 		printf("Y: %x\n", y);
 		printf("Flags: N=%d, V=%d, D=%d, I=%d, Z=%d, C=%d\n", p.n, p.v, p.d, p.i, p.z, p.c);
 	}
+	
+	void power()
+	{
+		// TODO initialize things
+	}
+	
+	void reset()
+	{
+		// TODO reset things
+	}
 }
