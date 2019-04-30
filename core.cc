@@ -56,44 +56,6 @@ namespace Core
 			pc += d;
 	}
 		
-	///////////////////////
-	// Flag instructions //
-	///////////////////////
-	
-	inline void CLC()
-	{
-		p.c = false;
-	}
-
-	inline void SEC()
-	{
-		
-	}
-
-	inline void CLI()
-	{
-
-	}
-	
-	inline void SEI()
-	{
-		
-	}
-
-	inline void CLV()
-	{
-		
-	}
-	
-	inline void CLD()
-	{
-		
-	}
-
-	inline void SED()
-	{
-		
-	}
 	
 	///////////////////////////
 	// Register instructions //
@@ -157,6 +119,79 @@ namespace Core
 		p.z = y == 0;
 		p.n = y < 0;
 	}
+	
+	/////////////////////////
+	/// Flag Instructions ///
+	/////////////////////////
+
+	inline void CLC()
+	{
+		p.c = 0;
+	}
+	inline void CLD()
+	{
+		p.d = 0;
+	}
+
+	inline void CLI()
+	{
+		p.i = 0;
+	}
+
+	inline void CLV()
+	{
+		p.v = 0;	
+	}
+
+	inline void SEC()
+	{
+		p.c = 1;
+	}
+
+	inline void SED()
+	{
+		p.d = 1;
+	}
+
+	inline void SEI()
+	{
+		p.i = 1;
+	}
+	
+	//////////////////////////
+	/// Stack Instructions ///
+	//////////////////////////
+
+	inline void TXS()
+	{
+		//
+	}
+	
+	inline void TSX()
+	{
+		//
+	}
+
+	inline void PHA()
+	{
+		//
+	}
+	
+	inline void PLA()
+	{
+		//
+	}
+
+	inline void PHP()
+	{
+		//
+	}
+
+	inline void PLP()
+	{
+		//
+	}
+
 	int8_t bob;
 
 	// addressing mode functions, to be called before instructions, update the global pointer data
@@ -264,7 +299,100 @@ namespace Core
 					break;
 				}
 
-                
+				//NOP
+				case 0xea:
+				{
+					pc++;	
+					break;
+				}
+				
+				//Flag (Processor Status) Instructions
+                case 0x18:
+				{
+					pc++;
+					CLC();
+					break;
+				}	
+                case 0x38:
+				{
+					pc++;
+					SEC();
+					break;
+				}
+                case 0x58:
+				{
+					pc++;
+					CLI();
+					break;
+				}
+                case 0x78:
+				{
+					pc++;
+					SEI();
+					break;
+				}
+                case 0xb8:
+				{
+					pc++;
+					CLV();
+					break;
+				}
+                case 0xd8:
+				{
+					pc++;
+					CLD();
+					break;
+				}
+                case 0xf8:
+				{
+					pc++;
+					SED();
+					break;
+				}
+
+				//Stack Instructions
+				case 0x9a:
+				{
+					pc++;
+					TXS();
+					break;
+				}
+				case 0xba:
+				{
+					pc++;
+					TSX();
+					break;
+				}
+				case 0x48:
+				{
+					pc++;
+					PHA();
+					break;
+				}
+				case 0x68:
+				{
+					pc++;
+					PLA();
+					break;
+				}
+				case 0x08:
+				{
+					pc++;
+					PHP();
+					break;
+				}
+				case 0x28:
+				{
+					pc++;
+					PLP();
+					break;
+				}
+
+				//Branch Instructions
+				
+
+
+
 				default:
 				{
 					printf("Encountered invalid opcode %x on line %x!\n", opcode, pc);
