@@ -18,18 +18,18 @@ struct Flags
 
 namespace Core
 {		
-	uint16_t pc; // Program counter
-	uint8_t sp; // Stack pointer
+	extern uint16_t pc; // Program counter
+	extern uint8_t sp; // Stack pointer
 	
-	int8_t a; // Accumulator
-	int8_t x; // Index register X
-	int8_t y; // Index register Y
+	extern int8_t a; // Accumulator
+	extern int8_t x; // Index register X
+	extern int8_t y; // Index register Y
 	
-	uint8_t mem[65536];
-	int8_t* data;
+	extern uint8_t mem[65536];
+	extern int8_t* data;
 	
 	// Initialize flags to 0
-	Flags p = {};
+	extern Flags p;
 		
 	void execute();
 	void dumpcore();	

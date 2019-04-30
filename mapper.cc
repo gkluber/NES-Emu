@@ -1,6 +1,9 @@
 #include "core.h"
 
 #include <iostream>
+#include <fstream>
+
+using namespace std;
 
 bool read_ines(const char *name)
 {
@@ -16,7 +19,7 @@ bool read_ines(const char *name)
 	rom.read(header, 16);	
 	if(header[0] != 'N' || header[1] != 'E' || header[2] != 'S' || header[3] != 0x1a)
 	{
-		std::cerr << "Rom " << name << " has invalid header file!";
+		std::cerr << "Rom " << name << " has invalid header file!" << std::endl;
 		return false;
 	}
 	
@@ -49,9 +52,15 @@ bool read_ines(const char *name)
 
 	// Implementing the rule of thumb stated here under section Flag 10
 	// http://wiki.nesdev.com/w/index.php/INES	
-	bool lastZero = header[12] == 0 && header[13] = 0 && header[14] == 0 && header[15] == 0;
+	bool lastZero = (header[12] == 0) && (header[13] = 0) && (header[14] == 0) && (header[15] == 0);
 
-	// TODO parse NES 2.0 and iNES differently
+	// TODO parse NES 2.0
+	if(nes2)
+	{
+		std::cerr << "Unable to read ROM " << name << ": cannot read NES 2.0 encoding" << std::endl;
+		return false;
+	}
+	
 	uint8_t mapper;
 	// See if we need to make out the upper four bits of the mapper	
 	if(!lastZero && !nes2)

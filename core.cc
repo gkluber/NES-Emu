@@ -10,6 +10,20 @@ using namespace Core;
 
 namespace Core
 {
+	// Instantiate global variables from core.h
+	uint16_t pc;
+	uint8_t sp;
+	
+	int8_t a;
+	int8_t x;
+	int8_t y;
+	
+	uint8_t mem[65536];
+	int8_t *data;
+	
+	Flags p = {};
+	
+	
 	/////////////////////////
 	// Branch instructions //
 	/////////////////////////
@@ -229,48 +243,48 @@ namespace Core
 	// absolute mode
 	void absMode() {
 		uint16_t addr = (mem[pc+2] << 8) + mem[pc+1];
-		data = &mem[addr];
+		data = (int8_t *) &mem[addr];
 	}
 	// zero-page mode
 	void zrpMode() {
 		uint8_t addr = mem[pc+1];
-		data = &mem[addr];
+		data = (int8_t *) &mem[addr];
 	}
 	// absolute indexed mode using x
 	void absix() {
 		// TODO verify that x remains unchanged
 		uint16_t addr = ((uint8_t) x) + (mem[pc+2] << 8) + mem[pc+1];
-		data = &mem[addr];
+		data = (int8_t *) &mem[addr];
 	}
 	// absolute indexed mode using y
 	void absiy() {
 		// TODO verify that y remains unchanged
 		uint16_t addr = ((uint8_t) y) + (mem[pc+2] << 8) + mem[pc+1];
-		data = &mem[addr];
+		data = (int8_t *) &mem[addr];
 	}
 	// zero-paged indexed mode using x
 	void zrpix() {
 		// TODO verify that x remains unchanged
-		uint8_t addr = ((uint8_t) x) + mem[pc+1];
-		data = &mem[addr];
+		uint16_t addr = ((uint8_t) x) + mem[pc+1];
+		data = (int8_t *) &mem[addr];
 	}
 	// zero-paged indexed mode using y
 	void zrpiy() {
 		// TODO verify that y remains unchanged
-		uint8_t addr = ((uint8_t) y) + mem[pc+1];
-		data = &mem[addr];
+		uint16_t addr = ((uint8_t) y) + mem[pc+1];
+		data = (int8_t *) &mem[addr];
 	}
 	// pre-indexed indirect mode (uses x)
 	void iix() {
 		//x += mem[pc+1]; TODO verify x unchanged
 		uint16_t addr = (mem[((uint8_t) x) + mem[pc+1] + 1] << 8) + mem[((uint8_t) x) + mem[pc+1]];
-		data = &mem[addr];
+		data = (int8_t *) &mem[addr];
 	}
 	// post-indexed indirect mode (uses y)
 	void iiy() {
-		uint8_t imm = mem[pc+1];
+		uint16_t imm = mem[pc+1];
 		uint16_t addr = (mem[imm+1] << 8) + mem[imm] + ((uint8_t) y);
-		data = &mem[addr];
+		data = (int8_t *) &mem[addr];
 	}
 
 	void execute()
