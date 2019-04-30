@@ -157,6 +157,16 @@ namespace Core
 		p.z = y == 0;
 		p.n = y < 0;
 	}
+	int8_t bob;
+
+	// addressing mode functions, to be called before instructions, update the global pointer data
+	void accMode() {
+		data = *a;
+	}
+	void immMode() {
+		bob = mem[pc+1];
+		data = *bob;
+	}
 		
 	void execute()
 	{
@@ -188,6 +198,8 @@ namespace Core
 					CLC();
 					break;
 				}
+
+				// register instructions
 				case 0xaa:
 				{
 					pc++;
@@ -230,12 +242,28 @@ namespace Core
                     DEY();
                     break;
                 }
+
                 case 0xc8:
                 {
                     pc++;
                     INY();
                     break;
                 }
+
+				// bitwise OR with Accumulator
+				case 0x09:
+				{
+					pc+=2;
+					ORA();
+					break;
+				}
+				case 0x0d:
+				{
+					pc += 3;
+					ORA();
+					break;
+				}
+
                 
 				default:
 				{

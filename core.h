@@ -25,6 +25,7 @@ namespace Core
 	int8_t y; // Index register Y
 	
 	uint8_t mem[65536];
+	int8_t* data;
 	
 	// Initialize flags to 0
 	Flags p = {};
