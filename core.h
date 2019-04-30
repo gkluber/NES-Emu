@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include "util.h"
 #include "flags.h"
 
 
