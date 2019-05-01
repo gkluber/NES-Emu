@@ -20,6 +20,8 @@ namespace Core
 	
 	uint8_t mem[65536];
 	int8_t *data;
+
+	uint64_t cyc;
 	
 	Flags p = {};
 	
@@ -228,63 +230,179 @@ namespace Core
 		p.c = 0 != ((((uint8_t)1)) & statusReg);
 	}
 
+	//AND Bitwise AND with Accumulator
+	inline void AND() {
+		a = a & (*data);
+		p.n = a<0;
+		p.z = a == 0;
+	}
+
+	//ASL Arithmetic Shift Left
+	inline void ASL() {
+		p.c = (*data)<0;
+		*data = (*data) << 1;
+		p.n = (*data)<0;
+		p.z = (*data)==0;
+	}
+
+	//STA Store Accumulator in Memory
+	inline void STA () {
+		mem[(*data)] = a;
+	}
+
+	//STX Store Index Register X in Memory
+	inline void STX () {
+		mem[(*data)] = x;
+	}
+
+	//STY Store Index Register Y in Memory
+	inline void STY () {
+		mem[(*data)] = y;
+	}
+
+	//CMP Compare Memory with Accumulator
+	//TODO, check that I detected carry properly
+	inline void CMP () {
+		int8_t res = a + (int8_t)((~(*data)+1));
+		p.n = res<0;
+		p.z = res==0;
+		p.c = ((int32_t)(a) + (int32_t)((~(*data)+1))) == res;
+	}
+
+	//CPX Compare Memory with Accumulator
+	//TODO, check that I detected carry properly
+	inline void CPX () {
+		int8_t res = x + (int8_t)((~(*data)+1));
+		p.n = res<0;
+		p.z = res==0;
+		p.c = ((int32_t)(x) + (int32_t)((~(*data)+1))) == res;
+	}
+
+	//CPY Compare Memory with Accumulator
+	//TODO, check that I detected carry properly
+	inline void CPY () {
+		int8_t res = y + (int8_t)((~(*data)+1));
+		p.n = res<0;
+		p.z = res==0;
+		p.c = ((int32_t)(y) + (int32_t)((~(*data)+1))) == res;
+	}
+
+	//DEC Decrement Memory (By 1)
+	inline void DEC () {
+		mem[*data]--;
+		int8_t sRes = (int8_t)(mem[*data]);
+		p.n = sRes < 0;
+		p.z = sRes == 0;	
+	}
+
+	//INC Increment Memory (By 1)
+	inline void INC () {
+		mem[*data]++;
+		int8_t sRes = (int8_t)(mem[*data]);
+		p.n = sRes <0;
+		p.z = sRes == 0;
+	}
+
+	//RTS Return from Subroutine
+	inline void RTS () {
+		sp++;
+		uint16_t newPC = ((uint16_t)mem[sp])<<8;
+		sp++;
+		newPC += mem[sp]; 
+		newPC++;
+		pc = newPC;
+	}
+
+	//LDA Load Accumulator from Memory
+	inline void LDA () {
+		a = *data;
+		p.n = a<0;
+		p.z = a==0;
+	}
+
+	//LDX Load Index Register X from Memory
+	inline void LDX () {
+		x = *data;
+		p.n = x<0;
+		p.z = x==0;
+	}
+
+	//LDY Load Index Register Y from Memory
+	inline void LDY () {
+		y = *data;
+		p.n = y<0;
+		p.z = y==0;
+	}
+
+
+	//HERE LIVES BOB, ALL HAIL BOB
 	int8_t bob;
 
 	// addressing mode functions, to be called before instructions, update the global pointer data
 	// accumulator mode
 	void accMode() {
 		data = &a;
+		pc++;
 	}
 	// immediate mode
 	void immMode() {
 		bob = mem[pc+1];
 		data = &bob;
+		pc += 2;
 	}
 	// absolute mode
 	void absMode() {
 		uint16_t addr = (((uint16_t)mem[pc+2]) << 8) + mem[pc+1];
 		data = (int8_t *) &mem[addr];
+		pc += 3;
 	}
 	// zero-page mode
 	void zrpMode() {
 		uint8_t addr = mem[pc+1];
 		data = (int8_t *) &mem[addr];
+		pc += 2;
 	}
 	// absolute indexed mode using x
 	void absix() {
 		// TODO verify that x remains unchanged
 		uint16_t addr = ((uint8_t) x) + (((uint16_t) mem[pc+2]) << 8) + mem[pc+1];
 		data = (int8_t *) &mem[addr];
+		pc += 3;
 	}
 	// absolute indexed mode using y
 	void absiy() {
 		// TODO verify that y remains unchanged
 		uint16_t addr = ((uint8_t) y) + (((uint16_t) mem[pc+2]) << 8) + mem[pc+1];
 		data = (int8_t *) &mem[addr];
+		pc += 3;
 	}
 	// zero-paged indexed mode using x
 	void zrpix() {
 		// TODO verify that x remains unchanged
 		uint16_t addr = ((uint8_t) x) + mem[pc+1];
 		data = (int8_t *) &mem[addr];
+		pc += 2;
 	}
 	// zero-paged indexed mode using y
 	void zrpiy() {
 		// TODO verify that y remains unchanged
 		uint16_t addr = ((uint8_t) y) + mem[pc+1];
 		data = (int8_t *) &mem[addr];
+		pc += 2;
 	}
 	// pre-indexed indirect mode (uses x)
 	void iix() {
 		//x += mem[pc+1]; TODO verify x unchanged
-		uint16_t addr = (((uint16_t) mem[((uint8_t) x) + mem[pc+1] + 1]) << 8) + mem[((uint8_t) x) + mem[pc+1]];
+		uint16_t addr = (((uint16_t) mem[((uint8_t) x) + mem[pc+2] + 1]) << 8) + mem[((uint8_t) x) + mem[pc+1]];
 		data = (int8_t *) &mem[addr];
+		pc += 3;
 	}
 	// post-indexed indirect mode (uses y)
 	void iiy() {
 		uint16_t imm = mem[pc+1];
 		uint16_t addr = (((uint16_t) mem[imm+1] << 8)) + mem[imm] + ((uint8_t) y);
 		data = (int8_t *) &mem[addr];
+		pc += 2;
 	}
 
 	void execute()
@@ -296,7 +414,8 @@ namespace Core
 			uint8_t opcode = mem[pc]; 
 			if(DEBUG)
 				printf("Reading instruction %x on line %lx\n", opcode, pc);
-				
+			
+			uint8_t sics = 0;	
 			switch(opcode)
 			{
 				//branch instructions
@@ -490,7 +609,434 @@ namespace Core
 					break;
 				}
 	
+				//Bitwise AND with Accumulator
+				case 0x29:
+				{
+					immMode();
+					AND();
+					break;	
+				}
+				case 0x25:
+				{
+					zrpMode();
+					AND();
+					break;	
+				}
+				case 0x35:
+				{
+					zrpix();
+					AND();
+					break;	
+				}
+				case 0x2D:
+				{
+					absMode();
+					AND();
+					break;	
+				}
+				case 0x3D:
+				{
+					absix();
+					AND();
+					break;	
+				}
+				case 0x39:
+				{
+					absiy();
+					AND();
+					break;	
+				}
+				case 0x21:
+				{
+					iix();
+					AND();
+					break;	
+				}
+				case 0x31:
+				{
+					iiy();
+					AND();
+					break;	
+				}
 
+				//Arithmetic Shift Left
+				case 0x0a:
+				{
+					accMode();
+					ASL();
+					break;
+				}
+				case 0x06:
+				{
+					zrpMode();
+					ASL();
+					break;
+				}
+				case 0x16:
+				{
+					zrpix();
+					ASL();
+					break;
+				}
+				case 0x0E:
+				{
+					absMode();
+					ASL();
+					break;
+				}
+				case 0x1E:
+				{
+					absix();
+					ASL();
+					break;
+				}
+				
+				//STA Store Accumulator in Memory
+				case 0x85:
+				{
+					zrpMode();
+					STA();
+					break;
+				}
+				case 0x95:
+				{
+					zrpix();
+					STA();
+					break;
+				}
+				case 0x8d:
+				{
+					absMode();
+					STA();
+					break;
+				}
+				case 0x9d:
+				{
+					absix();
+					STA();
+					break;
+				}
+				case 0x99:
+				{
+					absiy();
+					STA();
+					break;
+				}
+				case 0x81:
+				{
+					iix();
+					STA();
+					break;
+				}
+				case 0x91:
+				{
+					iiy();
+					STA();
+					break;
+				}
+
+				//STX Store Index Register X in Memory
+				case 0x86:
+				{
+					zrpMode();
+					STX();
+					break;
+				}
+				case 0x96:
+				{
+					zrpiy();
+					STX();
+					break;
+				}
+				case 0x8e:
+				{
+					absMode();
+					STX();
+					break;
+				}
+
+				//STY Store Index Register Y in Memory
+				case 0x84:
+				{
+					zrpMode();
+					STY();
+					break;
+				}
+				case 0x94:
+				{
+					zrpix();
+					STY();
+					break;
+				}
+				case 0x8c:
+				{
+					absMode();
+					STY();
+					break;
+				}
+				
+				//CMP Compare Memory With Accumulator
+				case 0xc9:
+				{
+					immMode();
+					CMP();
+					break;
+				}
+				case 0xc5:
+				{
+					zrpMode();
+					CMP();
+					break;
+				}
+				case 0xd5:
+				{
+					zrpix();
+					CMP();
+					break;
+				}
+				case 0xcd:
+				{
+					absMode();
+					CMP();
+					break;
+				}
+				case 0xdd:
+				{
+					absix();
+					CMP();
+					break;
+				}
+				case 0xd9:
+				{
+					absiy();
+					CMP();
+					break;
+				}
+				case 0xc1:
+				{
+					iix();
+					CMP();
+					break;
+				}
+				case 0xd1:
+				{
+					iiy();
+					CMP();
+					break;
+				}
+
+				//CPX Compare Index Register X with Memory
+				case 0xe0:
+				{
+					immMode();
+					CPX();
+					break;
+				}
+				case 0xe4:
+				{
+					zrpMode();
+					CPX();
+					break;
+				}
+				case 0xec:
+				{
+					absMode();
+					CPX();
+					break;
+				}
+				
+				//CPY Compare Index Register Y with Memory
+				case 0xc0:
+				{
+					immMode();
+					CPY();
+					break;
+				}
+				case 0xc4:
+				{
+					zrpMode();
+					CPY();
+					break;
+				}
+				case 0xcc:
+				{
+					absMode();
+					CPY();
+					break;
+				}
+
+				//DEC Decrement Memory (by 1)
+				case 0xc6:
+				{
+					zrpMode();
+					DEC();
+					break;
+				}
+				case 0xd6:
+				{
+					zrpix();
+					DEC();
+					break;
+				}
+				case 0xce:
+				{
+					absMode();
+					DEC();
+					break;
+				}
+				case 0xde:
+				{
+					absix();
+					DEC();
+					break;
+				}
+				
+				//INC Increment Memory (By 1)
+				case 0xe6:
+				{
+					zrpMode();
+					INC();
+					break;
+				}
+				case 0xf6:
+				{
+					zrpix();
+					INC();
+					break;
+				}
+				case 0xee:
+				{
+					absMode();
+					INC();
+					break;
+				}
+				case 0xfe:
+				{
+					absix();
+					INC();
+					break;
+				}
+
+				//RTS Return from Subroutine
+				case 0x60:
+				{
+					RTS();
+					break;	
+				}
+
+				//LDA Load Accumulator from Memory
+				case 0xa9:
+				{
+					immMode();
+					LDA();
+					break;
+				}
+				case 0xa5:
+				{
+					zrpMode();
+					LDA();
+					break;
+				}
+				case 0xb5:
+				{
+					zrpix();
+					LDA();
+					break;
+				}
+				case 0xad:
+				{
+					absMode();
+					LDA();
+					break;
+				}
+				case 0xbd:
+				{
+					absix();
+					LDA();
+					break;
+				}
+				case 0xb9:
+				{
+					absiy();
+					LDA();
+					break;
+				}
+				case 0xa1:
+				{
+					iix();
+					LDA();
+					break;
+				}
+				case 0xb1:
+				{
+					iiy();
+					LDA();
+					break;
+				}
+
+				//LDX Load Index Register X from Memory
+				case 0xa2:
+				{
+					immMode();
+					LDX();
+					break;
+				}
+				case 0xa6:
+				{
+					zrpMode();
+					LDX();
+					break;
+				}
+				case 0xb6:
+				{
+					zrpiy();
+					LDX();
+					break;
+				}
+				case 0xae:
+				{
+					absMode();
+					LDX();
+					break;
+				}
+				case 0xbe:
+				{
+					absiy();
+					LDX();
+					break;
+				}
+				
+				//LDY Load Index Register Y from Memory
+				case 0xa0:
+				{
+					immMode();
+					LDY();
+					break;
+				}
+				case 0xa4:
+				{
+					zrpMode();
+					LDY();
+					break;
+				}
+				case 0xb4:
+				{
+					zrpix();
+					LDY();
+					break;
+				}
+				case 0xac:
+				{
+					absMode();
+					LDY();
+					break;
+				}
+				case 0xbc:
+				{
+					absix();
+					LDY();
+					break;
+				}
 
 
 				default:
@@ -498,7 +1044,9 @@ namespace Core
 					printf("Encountered invalid opcode %x on line %x!\n", opcode, pc);
 					dumpcore();
 				} 
-			}	
+			}
+			
+			cyc += sics;	
 		}	
 	}
 

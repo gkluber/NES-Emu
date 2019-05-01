@@ -26,6 +26,8 @@ namespace Core
 	
 	extern uint8_t mem[65536];
 	extern int8_t* data;
+
+	extern uint64_t cyc;
 	
 	// Initialize flags to 0
 	extern Flags p;
