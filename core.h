@@ -29,7 +29,6 @@ namespace Core
 
 	extern uint64_t cyc;
 	
-	// Initialize flags to 0
 	extern Flags p;
 		
 	void execute();
