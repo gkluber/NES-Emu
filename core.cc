@@ -253,13 +253,13 @@ namespace Core
 	// absolute indexed mode using x
 	void absix() {
 		// TODO verify that x remains unchanged
-		uint16_t addr = ((uint8_t) x) + (mem[pc+2] << 8) + mem[pc+1];
+		uint16_t addr = ((uint8_t) x) + (((uint16_t) mem[pc+2]) << 8) + mem[pc+1];
 		data = (int8_t *) &mem[addr];
 	}
 	// absolute indexed mode using y
 	void absiy() {
 		// TODO verify that y remains unchanged
-		uint16_t addr = ((uint8_t) y) + (mem[pc+2] << 8) + mem[pc+1];
+		uint16_t addr = ((uint8_t) y) + (((uint16_t) mem[pc+2]) << 8) + mem[pc+1];
 		data = (int8_t *) &mem[addr];
 	}
 	// zero-paged indexed mode using x
@@ -277,13 +277,13 @@ namespace Core
 	// pre-indexed indirect mode (uses x)
 	void iix() {
 		//x += mem[pc+1]; TODO verify x unchanged
-		uint16_t addr = (mem[((uint8_t) x) + mem[pc+1] + 1] << 8) + mem[((uint8_t) x) + mem[pc+1]];
+		uint16_t addr = (((uint16_t) mem[((uint8_t) x) + mem[pc+1] + 1]) << 8) + mem[((uint8_t) x) + mem[pc+1]];
 		data = (int8_t *) &mem[addr];
 	}
 	// post-indexed indirect mode (uses y)
 	void iiy() {
 		uint16_t imm = mem[pc+1];
-		uint16_t addr = (mem[imm+1] << 8) + mem[imm] + ((uint8_t) y);
+		uint16_t addr = (((uint16_t) mem[imm+1] << 8)) + mem[imm] + ((uint8_t) y);
 		data = (int8_t *) &mem[addr];
 	}
 
