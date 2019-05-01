@@ -242,7 +242,7 @@ namespace Core
 	}
 	// absolute mode
 	void absMode() {
-		uint16_t addr = (mem[pc+2] << 8) + mem[pc+1];
+		uint16_t addr = (((uint16_t)mem[pc+2]) << 8) + mem[pc+1];
 		data = (int8_t *) &mem[addr];
 	}
 	// zero-page mode
