@@ -79,6 +79,11 @@ bool read_ines(const char *name)
 	} 
 	
 	Core::mapper = 0;
-	
+	Core::prg_rom_size = prg_size;
+	//char prg_rom[16384 * prg_size]
+	//rom.read(prg_rom, 16384);
+	//char chr_rom[8192 * ];
+	//rom.read
+	//for(int i = 0; i < 
 	rom.close();
 }
