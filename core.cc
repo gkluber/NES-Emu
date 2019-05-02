@@ -19,7 +19,7 @@ namespace Core
 	int8_t a;
 	int8_t x;
 	int8_t y;
-	
+
 	int8_t *data;
 	
 	uint8_t mapper;
@@ -29,24 +29,27 @@ namespace Core
 	uint8_t wram[8196];
 	uint8_t rom[32784];
 
-	uint16_t RESET;
-	uint16_t IRQ;
-	uint16_t NMI;
-
 	uint64_t cyc;
 	
 	Flags p;
 	
 	uint16_t get_effective_addr(uint16_t addr)
 	{
+		//if(DEBUG)
+		//	printf("Getting effective address of %x...\n", addr);
+		
 		if(addr < 0x2000)
 			addr &= 0x07ff;
 		else if((addr >= 0x2000) && (addr < 0x4000))
 			addr &= 0x2007;
 		else if((mapper == 0) && (addr >= 0x6000) && (addr < 0x8000 ))
 			addr &= 0x67ff;
-		else if((mapper == 0) && (addr >= 0x8000) && (addr < 0xfffa) && prg_rom_size == 1)
+		else if((mapper == 0) && (addr >= 0x8000) && (addr <= 0xffff) && prg_rom_size == 1)
 			addr &= 0xbfff;
+		
+		//if(DEBUG)
+		//	printf("Returning %x!\n", addr);
+		
 		return addr;
 	}
 		
@@ -88,20 +91,13 @@ namespace Core
 			case 0x4015: DMC_CTRL = data; break;
 			case 0x4017: DMC_FCOUNTER = data; break;
 			
-			// Interrupt vectors
-			case 0xfffa: NMI = NMI & 0xff00 | data; break;
-			case 0xfffb: NMI = NMI & 0x00ff | ((uint16_t) data << 8); break;
-			case 0xfffc: RESET = RESET & 0xff00 | data; break;
-			case 0xfffd: RESET = RESET & 0x00ff | ((uint16_t) data << 8); break;
-			case 0xfffe: IRQ = IRQ & 0xff00 | data; break;
-			case 0xffff: IRQ = IRQ & 0x00ff | ((uint16_t) data << 8); break;
 			default:
 			{
 				if(addr < 0x0800)
 					ram[addr] = data;
 				else if((addr >= 0x6000) && (addr < 0x8000))
 					wram[addr-0x6000] = data;
-				else if((addr >= 0x8000) && (addr < 0xfffa))
+				else if((addr >= 0x8000) && (addr <= 0xffff))
 					rom[addr-0x8000] = data;
 				// else ignore the data (i.e., writing to read-only port/address)
 			}
@@ -126,19 +122,13 @@ namespace Core
 			
 			case 0x4015: return DMC_STATUS;
 			
-			case 0xfffa: return NMI & 0x00ff;
-			case 0xfffb: return (NMI & 0xff00) >> 8;
-			case 0xfffc: return RESET & 0x00ff;
-			case 0xfffd: return (RESET & 0xff00) >> 8;
-			case 0xfffe: return IRQ & 0x00ff;
-			case 0xffff: return (IRQ & 0xff00) >> 8;
 			default:
 			{
 				if(addr < 0x0800)
 					return ram[addr];
 				else if((addr >= 0x6000) && (addr < 0x8000))
 					return wram[addr-0x6000];
-				else if((addr >= 0x8000) && (addr < 0xfffa))
+				else if((addr >= 0x8000) && (addr <= 0xffff))
 					return rom[addr-0x8000];
 				// else return 0 (writing to unmapped address)
 			}
@@ -169,14 +159,25 @@ namespace Core
 					return &ram[addr];
 				else if((addr >= 0x6000) && (addr < 0x8000))
 					return &wram[addr-0x6000];
-				else if((addr >= 0x8000) && (addr < 0xfffa))
+				else if((addr >= 0x8000) && (addr <= 0xffff))
 					return &rom[addr-0x8000];
 				// else return 0 (writing to unmapped address)
 			}
 		}
 		return 0; //broken address
 	}
-		
+	
+	///////////////////////
+	// Jump Instructions //
+	///////////////////////
+	
+	inline void JSR()
+	{
+		mem_write(sp, pc-1);
+		sp--;
+		pc = (uint16_t) mem_read(pc-1) << 8 | mem_read(pc-2);
+	}
+	
 	/////////////////////////
 	// Branch instructions //
 	/////////////////////////
@@ -1506,11 +1507,33 @@ namespace Core
 					ROR();
 					break;
 				}
+				case 0x4c:
+				{
+					// Absolute jump
+					pc += 3;
+					pc = (uint16_t) mem_read(pc-1) << 8 | mem_read(pc-2);
+					break;
+				}
+				case 0x6c:
+				{
+					// Indirect jump
+					pc += 3;
+					uint16_t jmp_mem = (uint16_t) mem_read(pc-1) << 8 | mem_read(pc-2);
+					pc = (uint16_t) mem_read(jmp_mem + 1) << 8 | mem_read(jmp_mem);
+					break;
+				}
+				case 0x20:
+				{
+					pc += 3;
+					JSR();
+					break;
+				}
 
 				default:
 				{
 					printf("Encountered invalid opcode %x on line %x!\n", opcode, pc);
 					dumpcore();
+					return;
 				} 
 			}
 			
@@ -1531,6 +1554,8 @@ namespace Core
 	
 	void power()
 	{
+		if(DEBUG)
+			std::cout << "Powering Core..." << std::endl;
 		// Set flags
 		p.n = false;
 		p.v = false;
@@ -1547,7 +1572,12 @@ namespace Core
 		mem_write(0x4015, 0x00);
 		for(uint16_t addr = 0x4000; addr <= 0x400f; addr++)
 			mem_write(addr, 0x00);
-			
+		
+		// Set PC to RESET vector contents
+		pc = mem_read(0xfffc);
+		pc |= (uint16_t) mem_read(0xfffd) << 8;	
+		if(DEBUG)
+			printf("pc=%x\n", pc);
 	}
 	
 	void reset()

@@ -1,4 +1,5 @@
 #include "core.h"
+#include "flags.h"
 
 #include <iostream>
 #include <fstream>
@@ -79,7 +80,11 @@ bool read_ines(const char *name)
 	} 
 	
 	Core::mapper = 0;
+	
+	if(DEBUG)
+		printf("prg_size=%d\n", prg_size);
 	Core::prg_rom_size = prg_size;
+	
 	if(prg_size == 0)
 	{
 		std::cerr << "Error: PRG size cannot be 0!" << std::endl;
@@ -88,10 +93,14 @@ bool read_ines(const char *name)
 	
 	// Copy PRG ROM over to CPU
 	int prg_bytes = 16384 * prg_size;
-	char prg_rom[prg_bytes];
-	rom.read(prg_rom, prg_bytes);
-	for(int i = 0; i < prg_bytes; i++)
-		Core::rom[i] = prg_rom[i];
+	rom.read((char *) Core::rom, prg_bytes);
+	
+	if(DEBUG)
+	{
+		std::cout << "Rom contents:" << std::endl;
+		for(int i = 0; i < 16384*2; i++)
+			printf("$%x = %x\n", i + 0x8000, Core::rom[i]);
+	}
 	
 	rom.close();
 }
