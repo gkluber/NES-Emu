@@ -80,10 +80,18 @@ bool read_ines(const char *name)
 	
 	Core::mapper = 0;
 	Core::prg_rom_size = prg_size;
-	//char prg_rom[16384 * prg_size]
-	//rom.read(prg_rom, 16384);
-	//char chr_rom[8192 * ];
-	//rom.read
-	//for(int i = 0; i < 
+	if(prg_size == 0)
+	{
+		std::cerr << "Error: PRG size cannot be 0!" << std::endl;
+		return false;
+	}
+	
+	// Copy PRG ROM over to CPU
+	int prg_bytes = 16384 * prg_size;
+	char prg_rom[prg_bytes];
+	rom.read(prg_rom, prg_bytes);
+	for(int i = 0; i < prg_bytes; i++)
+		Core::rom[i] = prg_rom[i];
+	
 	rom.close();
 }

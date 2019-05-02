@@ -29,6 +29,10 @@ namespace Core
 	uint8_t wram[8196];
 	uint8_t rom[32784];
 
+	uint16_t RESET;
+	uint16_t IRQ;
+	uint16_t NMI;
+
 	uint64_t cyc;
 	
 	Flags p;
@@ -41,7 +45,7 @@ namespace Core
 			addr &= 0x2007;
 		else if((mapper == 0) && (addr >= 0x6000) && (addr < 0x8000 ))
 			addr &= 0x67ff;
-		else if((mapper == 0) && (addr >= 0x8000) && (addr < 0xfffa) && prg_rom_size == 0)
+		else if((mapper == 0) && (addr >= 0x8000) && (addr < 0xfffa) && prg_rom_size == 1)
 			addr &= 0xbfff;
 		return addr;
 	}
@@ -83,6 +87,14 @@ namespace Core
 			case 0x4013: DMC_LEN = data; break;
 			case 0x4015: DMC_CTRL = data; break;
 			case 0x4017: DMC_FCOUNTER = data; break;
+			
+			// Interrupt vectors
+			case 0xfffa: NMI = NMI & 0xff00 | data; break;
+			case 0xfffb: NMI = NMI & 0x00ff | ((uint16_t) data << 8); break;
+			case 0xfffc: RESET = RESET & 0xff00 | data; break;
+			case 0xfffd: RESET = RESET & 0x00ff | ((uint16_t) data << 8); break;
+			case 0xfffe: IRQ = IRQ & 0xff00 | data; break;
+			case 0xffff: IRQ = IRQ & 0x00ff | ((uint16_t) data << 8); break;
 			default:
 			{
 				if(addr < 0x0800)
@@ -113,6 +125,13 @@ namespace Core
 			case 0x4014: return OAMDMA;
 			
 			case 0x4015: return DMC_STATUS;
+			
+			case 0xfffa: return NMI & 0x00ff;
+			case 0xfffb: return (NMI & 0xff00) >> 8;
+			case 0xfffc: return RESET & 0x00ff;
+			case 0xfffd: return (RESET & 0xff00) >> 8;
+			case 0xfffe: return IRQ & 0x00ff;
+			case 0xffff: return (IRQ & 0xff00) >> 8;
 			default:
 			{
 				if(addr < 0x0800)

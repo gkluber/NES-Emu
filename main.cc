@@ -1,3 +1,6 @@
+#include "mapper.h"
+#include "core.h"
+
 #include <iostream>
 #include <cstdio>
 #include <cstring>
@@ -5,8 +8,10 @@
 
 #include <SDL2/SDL.h>
 
-const int SCREEN_WIDTH = 640;
-const int SCREEN_HEIGHT = 480;
+const unsigned int IMG_WIDTH = 256;
+const unsigned int IMG_HEIGHT = 240;
+const unsigned int SCREEN_WIDTH = 640;
+const unsigned int SCREEN_HEIGHT = 480;
 
 int main(int argc, char *argv[])
 {
@@ -48,7 +53,14 @@ int main(int argc, char *argv[])
 	}
 	else if(strcmp(argv[1], "cpu") == 0)
 	{
-		// Test CPU
+		if(argc != 3)
+		{
+			std::cout << "Format: ./nes cpu <filename>" << std::endl;
+			return 0;
+		}
+		read_ines(argv[2]);
+		Core::power();
+		Core::execute();
 	}
 }
 

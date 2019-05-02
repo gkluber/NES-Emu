@@ -30,9 +30,15 @@ namespace Core
 	extern uint8_t mapper;
 	extern uint8_t prg_rom_size;
 	
+	// Memory
 	extern uint8_t ram[2048];
 	extern uint8_t wram[8196];
 	extern uint8_t rom[32784];
+
+	// Interrupt vectors	
+	extern uint16_t NMI;
+	extern uint16_t RESET;
+	extern uint16_t IRQ;
 	
 	extern uint64_t cyc;
 	
