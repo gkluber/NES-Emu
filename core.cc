@@ -483,6 +483,29 @@ namespace Core
 		//TODO
 	}
 
+	// EOR bitwise exclusive OR
+	inline void EOR() {
+		// TODO verify that all ops are on accumulator
+		a ^= *data;
+		p.n = a < 0;
+		p.z = a == 0;
+	}
+
+	// LSR logical shift right by 1 bit
+	inline void LSR() {
+		// TODO verify that this operates on data
+		p.c = *data & 1;
+		*data = ((uint8_t) *data) >> 1;
+		p.n = false;
+		p.z = *data == 0;
+	}
+
+	// ORA bitwise OR with accumulator
+	inline void ORA() {
+		a |= *data;
+		p.n = a < 0;
+		p.z = a == 0;
+	}
 
 	//HERE LIVES BOB, ALL HAIL BOB
 	int8_t bob;
@@ -1248,6 +1271,138 @@ namespace Core
 				{
 					iiy();
 					ADC();
+					break;
+				}
+
+				// EOR bitwise exlusive OR
+				case 0x49:
+				{
+					immMode();
+					EOR();
+					break;
+				}
+				case 0x45:
+				{
+					zrpMode();
+					EOR();
+					break;
+				}
+				case 0x55:
+				{
+					zrpix();
+					EOR();
+					break;
+				}
+				case 0x4d:
+				{
+					absMode();
+					EOR();
+					break;
+				}
+				case 0x5d:
+				{
+					absix();
+					EOR();
+					break;
+				}
+				case 0x59:
+				{
+					absiy();
+					EOR();
+					break;
+				}
+				case 0x41:
+				{
+					iix();
+					EOR();
+					break;
+				}
+				case 0x51:
+				{
+					iiy();
+					EOR();
+					break;
+				}
+
+				// LSR logical shift right shifts 1 bit right
+				case 0x4a:
+				{
+					accMode();
+					LSR();
+					break;
+				}
+				case 0x46:
+				{
+					zrpMode();
+					LSR();
+					break;
+				}
+				case 0x56:
+				{
+					zrpix();
+					LSR();
+					break;
+				}
+				case 0x4e:
+				{
+					absMode();
+					LSR();
+					break;
+				}
+				case 0x5e:
+				{
+					absix();
+					LSR();
+					break;
+				}
+
+				// ORA bitwise OR with accumulator
+				case 0x09:
+				{
+					immMode();
+					ORA();
+					break;
+				}
+				case 0x05:
+				{
+					zrpMode();
+					ORA();
+					break;
+				}
+				case 0x15:
+				{
+					zrpix();
+					ORA();
+					break;
+				}
+				case 0x0d:
+				{
+					absMode();
+					ORA();
+					break;
+				}
+				case 0x1d:
+				{
+					absix();
+					ORA();
+					break;
+				}
+				case 0x19:
+				{
+					absiy();
+					ORA();
+					break;
+				}
+				case 0x01:
+				{
+					iix();
+					ORA();
+					break;
+				}
+				case 0x11:
+				{
+					iiy();
+					ORA();
 					break;
 				}
 
