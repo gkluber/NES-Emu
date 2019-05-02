@@ -1,12 +1,14 @@
 #include "core.h"
 #include "flags.h"
+#include "apu.h"
+#include "ppu.h"
 
 #include <cstdio>
 #include <iostream>
 
-
-
 using namespace Core;
+using namespace APU;
+using namespace PPU;
 
 namespace Core
 {
@@ -18,14 +20,113 @@ namespace Core
 	int8_t x;
 	int8_t y;
 	
-	uint8_t mem[65536];
 	int8_t *data;
+	
+	uint8_t mapper;
+	uint8_t prg_rom_size;
+	
+	uint8_t ram[2048];
+	uint8_t wram[8196];
+	uint8_t rom[32784];
 
 	uint64_t cyc;
 	
-	Flags p = {};
+	Flags p;
 	
+	uint16_t get_effective_addr(uint16_t addr)
+	{
+		if(addr < 0x2000)
+			addr &= 0x07ff;
+		else if((addr >= 0x2000) && (addr < 0x4000))
+			addr &= 0x2007;
+		else if((mapper == 0) && (addr >= 0x6000) && (addr < 0x8000 ))
+			addr &= 0x67ff;
+		else if((mapper == 0) && (addr >= 0x8000) && (addr < 0xfffa) && prg_rom_size == 0)
+			addr &= 0xbfff;
+		return addr;
+	}
+		
+	void mem_write(uint16_t addr, uint8_t data)
+	{
+		addr = get_effective_addr(addr);
+		switch(addr)
+		{
+			// PPU registers
+			// TODO set PPU latch
+			case 0x2000: PPUCTRL = data; break;
+			case 0x2001: PPUMASK = data; break;
+			case 0x2003: OAMADDR = data; break;
+			case 0x2004: OAMDATA = data; break;
+			case 0x2005: PPUSCROLL = data; break;
+			case 0x2006: PPUADDR = data; break;
+			case 0x2007: PPUDATA = data; break;
+			case 0x4014: OAMDMA = data; break;
+			
+			// 2A03 register map
+			case 0x4000: SQ1_VOL = data; break;
+			case 0x4001: SQ1_SWEEP = data; break;
+			case 0x4002: SQ1_LO = data; break;
+			case 0x4003: SQ1_HI = data; break;
+			case 0x4004: SQ2_VOL = data; break; 
+			case 0x4005: SQ2_SWEEP = data; break;
+			case 0x4006: SQ2_LO = data; break;
+			case 0x4007: SQ2_HI = data; break;
+			case 0x4008: TRI_LINEAR = data; break;
+			case 0x400a: TRI_LO = data; break;
+			case 0x400b: TRI_HI = data; break;
+			case 0x400c: NOISE_VOL = data; break;
+			case 0x400e: NOISE_LO = data; break;
+			case 0x400f: NOISE_HI = data; break;
+			case 0x4010: DMC_FREQ = data; break;
+			case 0x4011: DMC_RAW = data; break;
+			case 0x4012: DMC_START = data; break;
+			case 0x4013: DMC_LEN = data; break;
+			case 0x4015: DMC_CTRL = data; break;
+			case 0x4017: DMC_FCOUNTER = data; break;
+			default:
+			{
+				if(addr < 0x0800)
+					ram[addr] = data;
+				else if((addr >= 0x6000) && (addr < 0x8000))
+					wram[addr-0x6000] = data;
+				else if((addr >= 0x8000) && (addr < 0xfffa))
+					rom[addr-0x8000] = data;
+				// else ignore the data (i.e., writing to read-only port/address)
+			}
+		}
+	}
 	
+	uint8_t mem_read(uint16_t addr)
+	{
+		addr = get_effective_addr(addr);
+		switch(addr)
+		{
+			//TODO PPU bus latch	
+			case 0x2000: return PPUCTRL;
+			case 0x2001: return PPUMASK;
+			case 0x2002: return PPUSTATUS;
+			case 0x2003: return OAMADDR;
+			case 0x2004: return OAMDATA;
+			case 0x2005: return PPUSCROLL;
+			case 0x2006: return PPUADDR;
+			case 0x2007: return PPUDATA;
+			case 0x4014: return OAMDMA;
+			
+			case 0x4015: return DMC_STATUS;
+			default:
+			{
+				if(addr < 0x0800)
+					return ram[addr];
+				else if((addr >= 0x6000) && (addr < 0x8000))
+					return wram[addr-0x6000];
+				else if((addr >= 0x8000) && (addr < 0xfffa))
+					return rom[addr-0x8000];
+				// else return 0 (writing to unmapped address)
+			}
+		}
+		return 0;
+	}
+		
 	/////////////////////////
 	// Branch instructions //
 	/////////////////////////
@@ -212,7 +313,7 @@ namespace Core
 
 	inline void PHP()
 	{
-		uint8_t statusReg = (p.n<<7) + (p.v<<6) + (p.b<<4) + (p.d<<3) + (p.i<<2) + (p.z<<1) + p.c;
+		uint8_t statusReg = (p.n<<7) | (p.v<<6) | (0b11<<4) | (p.d<<3) | (p.i<<2) | (p.z<<1) | p.c;
 		mem[sp] = statusReg;
 		sp--; 
 	}
@@ -223,7 +324,6 @@ namespace Core
 		uint8_t statusReg = mem[sp];
 		p.n = 0 != ((((uint8_t)1)<<7) & statusReg);
 		p.v = 0 != ((((uint8_t)1)<<6) & statusReg);
-		p.b = 0 != ((((uint8_t)1)<<4) & statusReg);
 		p.d = 0 != ((((uint8_t)1)<<3) & statusReg);
 		p.i = 0 != ((((uint8_t)1)<<2) & statusReg);
 		p.z = 0 != ((((uint8_t)1)<<1) & statusReg);
@@ -1063,11 +1163,29 @@ namespace Core
 	
 	void power()
 	{
-		// TODO initialize things
+		// Set flags
+		p.n = false;
+		p.v = false;
+		p.d = false;
+		p.i = true;
+		p.z = false;
+		p.c = false;
+		
+		a = 0;
+		x = 0;
+		y = 0;
+		sp = 0xfd;
+		mem_write(0x4017, 0x00);
+		mem_write(0x4015, 0x00);
+		for(uint16_t addr = 0x4000; addr <= 0x400f; addr++)
+			mem_write(addr, 0x00);
+			
 	}
 	
 	void reset()
 	{
-		// TODO reset things
+		sp -= 3;
+		p.i = true;
+		mem_write(0x4015, 0x00);
 	}
 }

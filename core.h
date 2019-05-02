@@ -12,7 +12,6 @@ struct Flags
 	bool i; // Interrupt Disable
 	bool z; // Zero
 	bool c; // Carry
-	bool b; // Interrupt Control Bit
 };
 
 namespace Core
@@ -24,9 +23,17 @@ namespace Core
 	extern int8_t x; // Index register X
 	extern int8_t y; // Index register Y
 	
-	extern uint8_t mem[65536];
 	extern int8_t* data;
-
+	
+	// Mapper number that we use to configure memory
+	// TODO abstract memory so that arbitrary mappers work
+	extern uint8_t mapper;
+	extern uint8_t prg_rom_size;
+	
+	extern uint8_t ram[2048];
+	extern uint8_t wram[8196];
+	extern uint8_t rom[32784];
+	
 	extern uint64_t cyc;
 	
 	extern Flags p;

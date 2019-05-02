@@ -72,9 +72,13 @@ bool read_ines(const char *name)
 		mapper = hiMapper | loMapper;	
 	}
 	
+	if(mapper != 0)
+	{
+		std::cerr << "Mapper number " << mapper << " not supported yet" << std::endl;
+		return false;
+	} 
 	
- 
-	
+	Core::mapper = 0;
 	
 	rom.close();
 }
