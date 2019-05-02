@@ -507,6 +507,24 @@ namespace Core
 		p.z = a == 0;
 	}
 
+	// ROL rotate left shifts all bits left 1 position, carry shifted into bit 0, bit 7 goes to carry
+	inline void ROL() {
+		uint8_t carry = p.c ? 1 : 0;
+		p.c = ((uint8_t) *data) >> 7 != 0;
+		*data = (*data << 1) | carry;
+		p.z = *data == 0;
+		p.n = *data < 0;
+	}
+
+	// ROR rotate right, shifts all bits right 1 pos, corray shifted into bit 7, 0 goes to carry
+	inline void ROR() {
+		uint8_t carry = p.c ? 1 : 0;
+		p.c = *data & 1 == 1;
+		*data = (((uint8_t) *data) >> 1) + (carry << 7);
+		p.n = *data < 0;
+		p.z = *data == 0;
+	}
+
 	//HERE LIVES BOB, ALL HAIL BOB
 	int8_t bob;
 
@@ -1403,6 +1421,70 @@ namespace Core
 				{
 					iiy();
 					ORA();
+					break;
+				}
+
+				// ROL rotate left
+				case 0x2a:
+				{
+					accMode();
+					ROL();
+					break;
+				}
+				case 0x26:
+				{
+					zrpMode();
+					ROL();
+					break;
+				}
+				case 0x36:
+				{
+					zrpix();
+					ROL();
+					break;
+				}
+				case 0x2e:
+				{
+					absMode();
+					ROL();
+					break;
+				}
+				case 0x3e:
+				{
+					absix();
+					ROL();
+					break;
+				}
+
+				// ROR rotate right
+				case 0x6a:
+				{
+					accMode();
+					ROR();
+					break;
+				}
+				case 0x66:
+				{
+					zrpMode();
+					ROR();
+					break;
+				}
+				case 0x76:
+				{
+					zrpix();
+					ROR();
+					break;
+				}
+				case 0x6e:
+				{
+					absMode();
+					ROR();
+					break;
+				}
+				case 0x7e:
+				{
+					absix();
+					ROR();
 					break;
 				}
 
