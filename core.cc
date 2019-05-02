@@ -126,6 +126,37 @@ namespace Core
 		}
 		return 0;
 	}
+	
+	uint8_t* mem_ptr(uint16_t addr)
+	{
+		addr = get_effective_addr(addr);
+		switch(addr)
+		{
+			//TODO PPU bus latch	
+			case 0x2000: return &PPUCTRL;
+			case 0x2001: return &PPUMASK;
+			case 0x2002: return &PPUSTATUS;
+			case 0x2003: return &OAMADDR;
+			case 0x2004: return &OAMDATA;
+			case 0x2005: return &PPUSCROLL;
+			case 0x2006: return &PPUADDR;
+			case 0x2007: return &PPUDATA;
+			case 0x4014: return &OAMDMA;
+			
+			case 0x4015: return &DMC_STATUS;
+			default:
+			{
+				if(addr < 0x0800)
+					return &ram[addr];
+				else if((addr >= 0x6000) && (addr < 0x8000))
+					return &wram[addr-0x6000];
+				else if((addr >= 0x8000) && (addr < 0xfffa))
+					return &rom[addr-0x8000];
+				// else return 0 (writing to unmapped address)
+			}
+		}
+		return 0; //broken address
+	}
 		
 	/////////////////////////
 	// Branch instructions //
@@ -299,14 +330,14 @@ namespace Core
 
 	inline void PHA()
 	{
-		mem[sp] = a;
+		mem_write(sp, a);
 		sp--;
 	}
 	
 	inline void PLA()
 	{
 		sp++;
-		a = mem[sp];
+		a = mem_read(sp);
 		p.z = sp == 0;
 		p.n = ((int8_t)sp) <0;
 	}
@@ -314,14 +345,14 @@ namespace Core
 	inline void PHP()
 	{
 		uint8_t statusReg = (p.n<<7) | (p.v<<6) | (0b11<<4) | (p.d<<3) | (p.i<<2) | (p.z<<1) | p.c;
-		mem[sp] = statusReg;
+		mem_write(sp, statusReg);
 		sp--; 
 	}
 
 	inline void PLP()
 	{
 		sp++;
-		uint8_t statusReg = mem[sp];
+		uint8_t statusReg = mem_read(sp);
 		p.n = 0 != ((((uint8_t)1)<<7) & statusReg);
 		p.v = 0 != ((((uint8_t)1)<<6) & statusReg);
 		p.d = 0 != ((((uint8_t)1)<<3) & statusReg);
@@ -338,6 +369,7 @@ namespace Core
 	}
 
 	//ASL Arithmetic Shift Left
+	//TODO sketchy write
 	inline void ASL() {
 		p.c = (*data)<0;
 		*data = (*data) << 1;
@@ -347,17 +379,17 @@ namespace Core
 
 	//STA Store Accumulator in Memory
 	inline void STA () {
-		mem[(*data)] = a;
+		mem_write((*data), a);
 	}
 
 	//STX Store Index Register X in Memory
 	inline void STX () {
-		mem[(*data)] = x;
+		mem_write((*data), x);
 	}
 
 	//STY Store Index Register Y in Memory
 	inline void STY () {
-		mem[(*data)] = y;
+		mem_write((*data), y);
 	}
 
 	//CMP Compare Memory with Accumulator
@@ -389,16 +421,16 @@ namespace Core
 
 	//DEC Decrement Memory (By 1)
 	inline void DEC () {
-		mem[*data]--;
-		int8_t sRes = (int8_t)(mem[*data]);
+		mem_write((*data), mem_read(*data) -1);
+		int8_t sRes = (int8_t)(mem_read(*data));
 		p.n = sRes < 0;
 		p.z = sRes == 0;	
 	}
 
 	//INC Increment Memory (By 1)
 	inline void INC () {
-		mem[*data]++;
-		int8_t sRes = (int8_t)(mem[*data]);
+		mem_write((*data), mem_read(*data)+1);
+		int8_t sRes = (int8_t)(mem_read(*data));
 		p.n = sRes <0;
 		p.z = sRes == 0;
 	}
@@ -406,9 +438,9 @@ namespace Core
 	//RTS Return from Subroutine
 	inline void RTS () {
 		sp++;
-		uint16_t newPC = ((uint16_t)mem[sp])<<8;
+		uint16_t newPC = ((uint16_t)mem_read(sp))<<8;
 		sp++;
-		newPC += mem[sp]; 
+		newPC += mem_read(sp); 
 		newPC++;
 		pc = newPC;
 	}
@@ -434,6 +466,23 @@ namespace Core
 		p.z = y==0;
 	}
 
+	//BIT Bit Test
+	inline void BIT () {
+		p.n = ((int8_t)(*data))<0;
+		p.v = (1 << 6) & (*data);
+		uint8_t res = a & mem_read(*data);
+		p.z = res == 0;
+	}
+
+	//ADC Add Memory, with Carry, to Accumulator
+	inline void ADC () {
+		a += *data + (uint8_t)(p.c);
+		p.n = a <0;
+		p.z = a==0;
+		p.c = ((int32_t)(*data) + (int32_t)(p.c)) == a;
+		//TODO
+	}
+
 
 	//HERE LIVES BOB, ALL HAIL BOB
 	int8_t bob;
@@ -446,62 +495,62 @@ namespace Core
 	}
 	// immediate mode
 	void immMode() {
-		bob = mem[pc+1];
+		bob = mem_read(pc+1);
 		data = &bob;
 		pc += 2;
 	}
 	// absolute mode
 	void absMode() {
-		uint16_t addr = (((uint16_t)mem[pc+2]) << 8) + mem[pc+1];
-		data = (int8_t *) &mem[addr];
+		uint16_t addr = (((uint16_t)mem_read(pc+2)) << 8) + mem_read(pc+1);
+		data = (int8_t *) mem_ptr(addr);
 		pc += 3;
 	}
 	// zero-page mode
 	void zrpMode() {
-		uint8_t addr = mem[pc+1];
-		data = (int8_t *) &mem[addr];
+		uint8_t addr = mem_read(pc+1);
+		data = (int8_t *) mem_ptr(addr);
 		pc += 2;
 	}
 	// absolute indexed mode using x
 	void absix() {
 		// TODO verify that x remains unchanged
-		uint16_t addr = ((uint8_t) x) + (((uint16_t) mem[pc+2]) << 8) + mem[pc+1];
-		data = (int8_t *) &mem[addr];
+		uint16_t addr = ((uint8_t) x) + (((uint16_t) mem_read(pc+2)) << 8) + mem_read(pc+1);
+		data = (int8_t *) mem_ptr(addr);
 		pc += 3;
 	}
 	// absolute indexed mode using y
 	void absiy() {
 		// TODO verify that y remains unchanged
-		uint16_t addr = ((uint8_t) y) + (((uint16_t) mem[pc+2]) << 8) + mem[pc+1];
-		data = (int8_t *) &mem[addr];
+		uint16_t addr = ((uint8_t) y) + (((uint16_t) mem_read(pc+2)) << 8) + mem_read(pc+1);
+		data = (int8_t *) mem_ptr(addr);
 		pc += 3;
 	}
 	// zero-paged indexed mode using x
 	void zrpix() {
 		// TODO verify that x remains unchanged
-		uint16_t addr = ((uint8_t) x) + mem[pc+1];
-		data = (int8_t *) &mem[addr];
+		uint16_t addr = ((uint8_t) x) + mem_read(pc+1);
+		data = (int8_t *) mem_ptr(addr);
 		pc += 2;
 	}
 	// zero-paged indexed mode using y
 	void zrpiy() {
 		// TODO verify that y remains unchanged
-		uint16_t addr = ((uint8_t) y) + mem[pc+1];
-		data = (int8_t *) &mem[addr];
+		uint16_t addr = ((uint8_t) y) + mem_read(pc+1);
+		data = (int8_t *) mem_ptr(addr);
 		pc += 2;
 	}
 	// pre-indexed indirect mode (uses x)
 	void iix() {
 		//x += mem[pc+1]; TODO verify x unchanged
-		uint16_t addr = (((uint16_t) mem[((uint8_t) x) + mem[pc+2] + 1]) << 8) + mem[((uint8_t) x) + mem[pc+1]];
-		data = (int8_t *) &mem[addr];
+		uint16_t addr = (((uint16_t) mem_read(((uint8_t) x) + mem_read(pc+2) + 1)) << 8) + mem_read(((uint8_t) x) + mem_read(pc+1));
+		data = (int8_t *) mem_ptr(addr);
 		pc += 3;
 	}
 	// post-indexed indirect mode (uses y)
 	void iiy() {
-		uint16_t imm = mem[pc+1];
-		uint16_t addr = (((uint16_t) mem[imm+1] << 8)) + mem[imm] + ((uint8_t) y);
-		data = (int8_t *) &mem[addr];
+		uint16_t imm = mem_read(pc+1);
+		uint16_t addr = (((uint16_t) mem_read(imm+1) << 8)) + mem_read(imm) + ((uint8_t) y);
+		data = (int8_t *) mem_ptr(addr);
 		pc += 2;
 	}
 
@@ -511,7 +560,7 @@ namespace Core
 		// TODO will also need to work with the SDL2 GUI
 		while(true)
 		{
-			uint8_t opcode = mem[pc]; 
+			uint8_t opcode = mem_read(pc); 
 			if(DEBUG)
 				printf("Reading instruction %x on line %lx\n", opcode, pc);
 			
@@ -522,49 +571,49 @@ namespace Core
 				case 0xd0:
 				{
 					pc += 2;
-					BNE(mem[pc-1]);
+					BNE(mem_read(pc-1));
 					break;
 				}
 				case 0xf0:
 				{
 					pc += 2;
-					BEQ(mem[pc-1]);
+					BEQ(mem_read(pc-1));
 					break;
 				}
 				case 0x10:
 				{
 					pc += 2;
-					BPL(mem[pc-1]);
+					BPL(mem_read(pc-1));
 					break;
 				}
 				case 0x30:
 				{
 					pc += 2;
-					BMI(mem[pc-1]);
+					BMI(mem_read(pc-1));
 					break;
 				}
 				case 0x50:
 				{
 					pc += 2;
-					BVC(mem[pc-1]);
+					BVC(mem_read(pc-1));
 					break;
 				}
 				case 0x70:
 				{
 					pc += 2;
-					BVS(mem[pc-1]);
+					BVS(mem_read(pc-1));
 					break;
 				}
 				case 0x90:
 				{
 					pc += 2;
-					BCC(mem[pc-1]);
+					BCC(mem_read(pc-1));
 					break;
 				}
 				case 0xb0:
 				{
 					pc += 2;
-					BCS(mem[pc-1]);
+					BCS(mem_read(pc-1));
 					break;
 				}
 
@@ -1137,7 +1186,70 @@ namespace Core
 					LDY();
 					break;
 				}
+				
+				//BIT Bit Test
+				case 0x24:
+				{
+					zrpMode();
+					BIT();
+					break;
+				}
+				case 0x2c:
+				{
+					absMode();
+					BIT();
+					break;
+				}
 
+				//ADC Add Memory, with Carry, to Accumulator
+				case 0x69:
+				{
+					immMode();
+					ADC();
+					break;
+				}
+				case 0x65:
+				{
+					zrpMode();
+					ADC();
+					break;
+				}
+				case 0x75:
+				{
+					zrpix();
+					ADC();
+					break;
+				}
+				case 0x6d:
+				{
+					absMode();
+					ADC();
+					break;
+				}
+				case 0x7d:
+				{
+					absix();
+					ADC();
+					break;
+				}
+				case 0x79:
+				{
+					absiy();
+					ADC();
+					break;
+				}
+				case 0x61:
+				{
+					iix();
+					ADC();
+					break;
+				}
+				case 0x71:
+				{
+					iiy();
+					ADC();
+					break;
+				}
 
 				default:
 				{
