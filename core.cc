@@ -799,6 +799,7 @@ namespace Core
 				{
 					pc++;
 					SED();
+					std::cout << "Warning: entered decimal mode" << std::endl;
 					break;
 				}
 
