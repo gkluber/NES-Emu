@@ -56,6 +56,9 @@ namespace Core
 		
 	void mem_write(uint16_t addr, uint8_t data)
 	{
+		if (addr == 0x07ff) {
+				printf("WHOOOOO %d\n", data);
+		}
 		addr = get_effective_addr(addr);
 		switch(addr)
 		{
@@ -174,9 +177,14 @@ namespace Core
 	
 	inline void JSR()
 	{
-		mem_write(sp, pc-1);
+		uint16_t pcToSave = pc-1;
+		uint8_t hiBite = pcToSave >> 8;
+		uint8_t loBite = (pcToSave << 8) >> 8;
+		mem_write(sp, hiBite);
 		sp--;
-		pc = (uint16_t) mem_read(pc-1) << 8 | mem_read(pc-2);
+		mem_write(sp, loBite);
+		sp--;
+		pc = ( (uint16_t)(mem_read(pc-1)) << 8) | (uint16_t)(mem_read(pc-2));
 	}
 	
 	/////////////////////////
@@ -359,8 +367,8 @@ namespace Core
 	{
 		sp++;
 		a = mem_read(sp);
-		p.z = sp == 0;
-		p.n = ((int8_t)sp) <0;
+		p.z = a == 0;
+		p.n = a <0;
 	}
 
 	inline void PHP()
@@ -399,20 +407,21 @@ namespace Core
 	}
 
 	//STA Store Accumulator in Memory
+	//TODO modded from a write call mem_write(*data, a);
 	inline void STA () {
-		mem_write((*data), a);
+		*data = a;
 	}
 
 	//STX Store Index Register X in Memory
 	inline void STX () {
-		mem_write((*data), x);
+		*data = x;
 	}
 
 	//STY Store Index Register Y in Memory
 	inline void STY () {
-		mem_write((*data), y);
+		*data = y;
 	}
-
+	//old line is p.c = res < max<int8_t>(a, -d)
 	//CMP Compare Memory with Accumulator
 	inline void CMP () {
 		int8_t d = (int8_t)(*data);
@@ -421,7 +430,7 @@ namespace Core
 		bool opsign = a < 0;
 		p.n = res<0;
 		p.z = res==0;
-		p.c = res < max<int8_t>(a, -d);
+		p.c = d <= a;
 	}
 
 	//CPX Compare Memory with Accumulator
@@ -432,7 +441,7 @@ namespace Core
 		int8_t res = x - d;
 		p.n = res < 0;
 		p.z = res == 0;
-		p.c = res < max<int8_t>(x, -d);
+		p.c = d <= x;
 	}
 
 	//CPY Compare Memory with Accumulator
@@ -443,7 +452,7 @@ namespace Core
 		int8_t res = y - d;
 		p.n = res<0;
 		p.z = res==0;
-		p.c = res < max<int8_t>(y, d);
+		p.c = d <= y;
 	}
 
 	//DEC Decrement Memory (By 1)
@@ -468,9 +477,9 @@ namespace Core
 	inline void RTS () 
 	{
 		sp++;
-		uint16_t newPC = ((uint16_t)mem_read(sp))<<8;
+		uint16_t newPC = ((uint16_t)mem_read(sp));
 		sp++;
-		newPC += mem_read(sp); 
+		newPC += ((uint16_t)(mem_read(sp)) <<8); 
 		newPC++;
 		pc = newPC;
 	}
@@ -498,8 +507,8 @@ namespace Core
 
 	//BIT Bit Test
 	inline void BIT () {
-		p.n = ((int8_t)(*data))<0;
-		p.v = (1 << 6) & (*data);
+		p.n = ((int8_t)(mem_read(*data)))<0;
+		p.v = (1 << 6) & (mem_read(*data));
 		uint8_t res = a & mem_read(*data);
 		p.z = res == 0;
 	}
@@ -513,14 +522,39 @@ namespace Core
 		bool sign = result >> 7; // resultant 
 		p.n = result < 0;
 		p.z = result == 0;
+		p.c = p.c + (uint32_t)(*data) + (uint32_t)a > 255;
+		p.v = sign && !opsign;
+		a = result;
+	}
+	inline void old_ADC () 
+	{
+		int8_t offset = *data + (int8_t) p.c;
+		bool opsign = a >> 7;
+		int8_t result = a + offset;
+		bool sign = result >> 7; // resultant 
+		p.n = result < 0;
+		p.z = result == 0;
 		p.c = result < max<int8_t>(a, offset);
 		p.v = sign && !opsign;
 		a = result;
 	}
 	
+	//pot fix added TODO
 	inline void SBC()
 	{
-		int8_t offset = *data + (int8_t) p.c;
+		int8_t offset = *data + (int8_t)(1- p.c);
+		bool opsign = a >> 7;
+		int8_t result = a - offset;
+		bool sign = result >> 7;
+		p.n = result < 0;
+		p.z = result == 0;
+		p.c = result >= 0;
+		p.v = !sign && opsign;
+		a = result;
+	}
+	inline void old_SBC()
+	{
+		int8_t offset = *data + (int8_t)(1- p.c);
 		bool opsign = a >> 7;
 		int8_t result = a - offset;
 		bool sign = result >> 7;
@@ -640,11 +674,19 @@ namespace Core
 	{
 		// TODO will need to accept interrupts from the system and from the PPU/APU
 		// TODO will also need to work with the SDL2 GUI
+		uint32_t cc = 0;
 		while(true)
 		{
-			uint8_t opcode = mem_read(pc); 
-//			if(DEBUG)
-//				printf("Reading instruction %x on line %lx\n", opcode, pc);
+			uint8_t opcode = mem_read(pc);
+			if(DEBUG) {
+				printf("Reading instruction %x on line %lx\n", opcode, pc);
+/*				dumpcore();
+				cc++;
+				if (cc%10 == 0) {
+					getchar();
+				} */
+//				scanf("%c", &c);
+			}
 			
 			uint8_t sics = 0;	
 			switch(opcode)
@@ -1623,8 +1665,13 @@ namespace Core
 		printf("X: %x\n", x);
 		printf("Y: %x\n", y);
 		printf("Flags: N=%d, V=%d, D=%d, I=%d, Z=%d, C=%d\n", p.n, p.v, p.d, p.i, p.z, p.c);
-
-		
+		uint8_t statusReg = (p.n<<7) | (p.v<<6)| (1<<5)  | (p.d<<3) | (p.i<<2) | (p.z<<1) | p.c;
+		printf("Flag byte P:  %x\n", statusReg);
+		uint16_t loc = 0x6004;
+//		printf("Now to check for correctness...\n");
+//		while (mem_read(loc) != 0) {
+//			printf("! %d ", mem_read(loc));		
+//		}
 	}
 	
 	void power()
@@ -1650,7 +1697,9 @@ namespace Core
 		
 		// Set PC to RESET vector contents
 		pc = mem_read(0xfffc);
-		pc |= (uint16_t) mem_read(0xfffd) << 8;	
+		pc |= (uint16_t) mem_read(0xfffd) << 8;
+		//TODO
+		pc -= 4;	
 		if(DEBUG)
 			printf("pc=%x\n", pc);
 	}
