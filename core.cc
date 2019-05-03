@@ -643,8 +643,8 @@ namespace Core
 		while(true)
 		{
 			uint8_t opcode = mem_read(pc); 
-			if(DEBUG)
-				printf("Reading instruction %x on line %lx\n", opcode, pc);
+//			if(DEBUG)
+//				printf("Reading instruction %x on line %lx\n", opcode, pc);
 			
 			uint8_t sics = 0;	
 			switch(opcode)
