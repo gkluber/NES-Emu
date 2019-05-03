@@ -479,7 +479,7 @@ namespace Core
 		sp++;
 		uint16_t newPC = ((uint16_t)mem_read(sp));
 		sp++;
-		newPC += ((uint16_t)(mem_read(sp)) <<8); 
+		newPC |= ((uint16_t)(mem_read(sp)) <<8); 
 		newPC++;
 		pc = newPC;
 	}
@@ -622,7 +622,7 @@ namespace Core
 	}
 	// absolute mode
 	void absMode() {
-		uint16_t addr = (((uint16_t)mem_read(pc+2)) << 8) + mem_read(pc+1);
+		uint16_t addr = (((uint16_t)mem_read(pc+2)) << 8) | mem_read(pc+1);
 		data = (int8_t *) mem_ptr(addr);
 		pc += 3;
 	}
@@ -1661,13 +1661,21 @@ namespace Core
 		printf("Core dump:\n");
 		printf("PC: %x\n", pc);
 		printf("SP: %x\n", sp);
-		printf("A: %x\n", a);
-		printf("X: %x\n", x);
-		printf("Y: %x\n", y);
+		printf("A: %x\n", (uint8_t) a);
+		printf("X: %x\n", (uint8_t) x);
+		printf("Y: %x\n", (uint8_t) y);
 		printf("Flags: N=%d, V=%d, D=%d, I=%d, Z=%d, C=%d\n", p.n, p.v, p.d, p.i, p.z, p.c);
-		uint8_t statusReg = (p.n<<7) | (p.v<<6)| (1<<5)  | (p.d<<3) | (p.i<<2) | (p.z<<1) | p.c;
-		printf("Flag byte P:  %x\n", statusReg);
-		uint16_t loc = 0x6004;
+		//uint8_t statusReg = (p.n<<7) | (p.v<<6)| (1<<5) | (p.d<<3) | (p.i<<2) | (p.z<<1) | p.c;
+		//printf("Flag byte P:  %x\n", statusReg);
+		for(int i = 0; i < 0x1000; i++)
+		{
+			printf("%02x ", mem_read(i));
+			if((i % 8 == 0) && (i != 0))
+				std::cout << std::endl;
+		}
+		std::cout << std::endl;
+		
+		//uint16_t loc = 0x6004;
 //		printf("Now to check for correctness...\n");
 //		while (mem_read(loc) != 0) {
 //			printf("! %d ", mem_read(loc));		
@@ -1698,8 +1706,7 @@ namespace Core
 		// Set PC to RESET vector contents
 		pc = mem_read(0xfffc);
 		pc |= (uint16_t) mem_read(0xfffd) << 8;
-		//TODO
-		pc -= 4;	
+		
 		if(DEBUG)
 			printf("pc=%x\n", pc);
 	}
