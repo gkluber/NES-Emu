@@ -2,6 +2,7 @@
 #include "flags.h"
 #include "apu.h"
 #include "ppu.h"
+#include "util.h"
 
 #include <cstdio>
 #include <iostream>
@@ -383,7 +384,7 @@ namespace Core
 
 	//AND Bitwise AND with Accumulator
 	inline void AND() {
-		a = a & (*data);
+		a &= *data;
 		p.n = a<0;
 		p.z = a == 0;
 	}
@@ -413,34 +414,41 @@ namespace Core
 	}
 
 	//CMP Compare Memory with Accumulator
-	//TODO, check that I detected carry properly
 	inline void CMP () {
-		int8_t res = a + (int8_t)((~(*data)+1));
+		int8_t d = (int8_t)(*data);
+		int8_t res = (int8_t) a - d;
+		bool sign = res < 0;
+		bool opsign = a < 0;
 		p.n = res<0;
 		p.z = res==0;
-		p.c = ((int32_t)(a) + (int32_t)((~(*data)+1))) == res;
+		p.c = res < max<int8_t>(a, -d);
 	}
 
 	//CPX Compare Memory with Accumulator
 	//TODO, check that I detected carry properly
-	inline void CPX () {
-		int8_t res = x + (int8_t)((~(*data)+1));
-		p.n = res<0;
-		p.z = res==0;
-		p.c = ((int32_t)(x) + (int32_t)((~(*data)+1))) == res;
+	inline void CPX () 
+	{
+		int8_t d = (int8_t)(*data);
+		int8_t res = x - d;
+		p.n = res < 0;
+		p.z = res == 0;
+		p.c = res < max<int8_t>(x, -d);
 	}
 
 	//CPY Compare Memory with Accumulator
 	//TODO, check that I detected carry properly
-	inline void CPY () {
-		int8_t res = y + (int8_t)((~(*data)+1));
+	inline void CPY () 
+	{
+		int8_t d = (int8_t)(*data);
+		int8_t res = y - d;
 		p.n = res<0;
 		p.z = res==0;
-		p.c = ((int32_t)(y) + (int32_t)((~(*data)+1))) == res;
+		p.c = res < max<int8_t>(y, d);
 	}
 
 	//DEC Decrement Memory (By 1)
-	inline void DEC () {
+	inline void DEC () 
+	{
 		mem_write((*data), mem_read(*data) -1);
 		int8_t sRes = (int8_t)(mem_read(*data));
 		p.n = sRes < 0;
@@ -448,7 +456,8 @@ namespace Core
 	}
 
 	//INC Increment Memory (By 1)
-	inline void INC () {
+	inline void INC () 
+	{
 		mem_write((*data), mem_read(*data)+1);
 		int8_t sRes = (int8_t)(mem_read(*data));
 		p.n = sRes <0;
@@ -456,7 +465,8 @@ namespace Core
 	}
 
 	//RTS Return from Subroutine
-	inline void RTS () {
+	inline void RTS () 
+	{
 		sp++;
 		uint16_t newPC = ((uint16_t)mem_read(sp))<<8;
 		sp++;
@@ -495,17 +505,34 @@ namespace Core
 	}
 
 	//ADC Add Memory, with Carry, to Accumulator
-	inline void ADC () {
-		a += *data + (uint8_t)(p.c);
-		p.n = a <0;
-		p.z = a==0;
-		p.c = ((int32_t)(*data) + (int32_t)(p.c)) == a;
-		//TODO
+	inline void ADC () 
+	{
+		int8_t offset = *data + (int8_t) p.c;
+		bool opsign = a >> 7;
+		int8_t result = a + offset;
+		bool sign = result >> 7; // resultant 
+		p.n = result < 0;
+		p.z = result == 0;
+		p.c = result < max<int8_t>(a, offset);
+		p.v = sign && !opsign;
+		a = result;
+	}
+	
+	inline void SBC()
+	{
+		int8_t offset = *data + (int8_t) p.c;
+		bool opsign = a >> 7;
+		int8_t result = a - offset;
+		bool sign = result >> 7;
+		p.n = result < 0;
+		p.z = result == 0;
+		p.c = result < max<int8_t>(a, -offset);
+		p.v = !sign && opsign;
+		a = result;
 	}
 
 	// EOR bitwise exclusive OR
 	inline void EOR() {
-		// TODO verify that all ops are on accumulator
 		a ^= *data;
 		p.n = a < 0;
 		p.z = a == 0;
@@ -513,7 +540,6 @@ namespace Core
 
 	// LSR logical shift right by 1 bit
 	inline void LSR() {
-		// TODO verify that this operates on data
 		p.c = *data & 1;
 		*data = ((uint8_t) *data) >> 1;
 		p.n = false;
@@ -574,35 +600,30 @@ namespace Core
 	}
 	// absolute indexed mode using x
 	void absix() {
-		// TODO verify that x remains unchanged
 		uint16_t addr = ((uint8_t) x) + (((uint16_t) mem_read(pc+2)) << 8) + mem_read(pc+1);
 		data = (int8_t *) mem_ptr(addr);
 		pc += 3;
 	}
 	// absolute indexed mode using y
 	void absiy() {
-		// TODO verify that y remains unchanged
 		uint16_t addr = ((uint8_t) y) + (((uint16_t) mem_read(pc+2)) << 8) + mem_read(pc+1);
 		data = (int8_t *) mem_ptr(addr);
 		pc += 3;
 	}
 	// zero-paged indexed mode using x
 	void zrpix() {
-		// TODO verify that x remains unchanged
 		uint16_t addr = ((uint8_t) x) + mem_read(pc+1);
 		data = (int8_t *) mem_ptr(addr);
 		pc += 2;
 	}
 	// zero-paged indexed mode using y
 	void zrpiy() {
-		// TODO verify that y remains unchanged
 		uint16_t addr = ((uint8_t) y) + mem_read(pc+1);
 		data = (int8_t *) mem_ptr(addr);
 		pc += 2;
 	}
 	// pre-indexed indirect mode (uses x)
 	void iix() {
-		//x += mem[pc+1]; TODO verify x unchanged
 		uint16_t addr = (((uint16_t) mem_read(((uint8_t) x) + mem_read(pc+2) + 1)) << 8) + mem_read(((uint8_t) x) + mem_read(pc+1));
 		data = (int8_t *) mem_ptr(addr);
 		pc += 3;
@@ -1311,6 +1332,57 @@ namespace Core
 					ADC();
 					break;
 				}
+
+				// SBC SuBtract with Carry
+				case 0xe9:
+				{
+					immMode();
+					SBC();
+					break;
+				}
+				case 0xe5:
+				{
+					zrpMode();
+					SBC();
+					break;
+				}
+				case 0xf5:
+				{
+					zrpix();
+					SBC();
+					break;
+				}
+				case 0xed:
+				{
+					absMode();
+					SBC();
+					break;
+				}
+				case 0xfd:
+				{
+					absix();
+					SBC();
+					break;
+				}
+				case 0xf9:
+				{
+					absiy();
+					SBC();
+					break;
+				}
+				case 0xe1:
+				{
+					iix();
+					SBC();
+					break;
+				}
+				case 0xf1:
+				{
+					iiy();
+					SBC();
+					break;
+				}
+				
 
 				// EOR bitwise exlusive OR
 				case 0x49:
