@@ -28,6 +28,14 @@ namespace PPU
 	bool odd_frame;
 		
 	uint8_t mem[16384];	
+	uint8_t nametables[4096];
+	uint8_t secOAM[32];
+
+	inline void resetSecondaryOAM()
+	{
+		for (int i = 0; i < 32; i++)
+			secOAM[i] = 0xff;
+	}
 		
 	void power()
 	{
