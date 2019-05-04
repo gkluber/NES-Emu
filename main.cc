@@ -1,5 +1,6 @@
 #include "mapper.h"
 #include "core.h"
+#include "ppu.h"
 
 #include <iostream>
 #include <cstdio>
@@ -17,10 +18,6 @@ int main(int argc, char *argv[])
 {
 	if(argc == 1 || strcmp(argv[1], "gui") == 0)
 	{
-		SDL_Window *window = nullptr;
-		
-		SDL_Surface *screen = nullptr;
-		
 		int result = SDL_Init(SDL_INIT_VIDEO);	
 		if(result < 0)
 		{
@@ -38,6 +35,7 @@ int main(int argc, char *argv[])
 		screen = SDL_GetWindowSurface(window);
 		
 		SDL_FillRect(screen, nullptr, SDL_MapRGB(screen->format, 0xff, 0xff, 0xff));
+		PPU::drawBackground();
 		
 		SDL_UpdateWindowSurface(window);
 		

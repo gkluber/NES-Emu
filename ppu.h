@@ -1,6 +1,13 @@
 #pragma once
 
 #include <cstdint>
+#include <cstdio>
+#include <iostream>
+#include <SDL2/SDL.h>
+
+extern SDL_Window *window;		
+extern SDL_Surface *screen;
+extern SDL_Renderer *renderer;		
 
 namespace PPU
 {	
@@ -18,4 +25,5 @@ namespace PPU
 		
 	void power();
 	void reset();
+	void drawBackground();
 }
