@@ -1675,6 +1675,9 @@ namespace Core
 		}
 		std::cout << std::endl;
 		
+		if  (NESTEST) {
+			printf("02h = %x and 03h = %x\n", mem_read(2), mem_read(3));
+		}
 		//uint16_t loc = 0x6004;
 //		printf("Now to check for correctness...\n");
 //		while (mem_read(loc) != 0) {
@@ -1707,6 +1710,9 @@ namespace Core
 		pc = mem_read(0xfffc);
 		pc |= (uint16_t) mem_read(0xfffd) << 8;
 		
+		if (NESTEST) {
+				pc = 0xc000;
+		}
 		if(DEBUG)
 			printf("pc=%x\n", pc);
 	}

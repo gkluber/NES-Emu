@@ -152,7 +152,6 @@ int main(int argc, char *argv[])
 			std::cout << "Format: ./nes cpu <filename>" << std::endl;
 			return 0;
 		}
-		
 		read_ines(argv[2]);
 		Core::power();
 		Core::execute();
