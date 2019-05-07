@@ -3,6 +3,7 @@
 #include "apu.h"
 #include "ppu.h"
 #include "util.h"
+#include "controller.h"
 
 #include <cstdio>
 #include <iostream>
@@ -10,6 +11,7 @@
 using namespace Core;
 using namespace APU;
 using namespace PPU;
+using namespace CONTROLLER;
 
 namespace Core
 {
@@ -93,6 +95,7 @@ namespace Core
 			case 0x4012: DMC_START = data; break;
 			case 0x4013: DMC_LEN = data; break;
 			case 0x4015: DMC_CTRL = data; break;
+			case 0x4016: set_controller_strobe((data & 1) == 1); break;
 			case 0x4017: DMC_FCOUNTER = data; break;
 			
 			default:
