@@ -191,52 +191,60 @@ namespace Core
 	// Branch instructions //
 	/////////////////////////
 		
-	inline void BPL(int8_t d)
+	inline bool BPL(int8_t d)
 	{
 		if(!p.n)
 			pc += d;	
+		return !p.n;
 	}
 	
-	inline void BMI(int8_t d)
+	inline bool BMI(int8_t d)
 	{
 		if(p.n)
 			pc += d;	
+		return p.n;
 	}
 
-	inline void BVC(int8_t d)
+	inline bool BVC(int8_t d)
 	{
 		if(!p.v)
 			pc += d;	
+		return !p.v;
 	}
 	
-	inline void BVS(int8_t d)
+	inline bool BVS(int8_t d)
 	{
 		if(p.v)
 			pc += d;	
+		return p.v;
 	}
 	
-	inline void BCC(int8_t d)
+	inline bool BCC(int8_t d)
 	{
 		if(!p.c)
 			pc += d;	
+		return !p.c;
 	}
 	
-	inline void BCS(int8_t d)
+	inline bool BCS(int8_t d)
 	{
 		if (p.c)
 			pc += d;	
+		return p.c;
 	}
 	
-	inline void BNE(int8_t d)
+	inline bool BNE(int8_t d)
 	{
 		if(!p.z)
 			pc += d;
+		return !p.z;
 	}
 	
-	inline void BEQ(int8_t d)
+	inline bool BEQ(int8_t d)
 	{
 		if(p.z)
 			pc += d;
+		return p.z;
 	}
 		
 	
@@ -507,6 +515,7 @@ namespace Core
 
 	//BIT Bit Test
 	inline void BIT () {
+		printf("here %x \n", mem_read(*data)); //TODO
 		p.n = ((int8_t)(mem_read(*data)))<0;
 		p.v = (1 << 6) & (mem_read(*data));
 		uint8_t res = a & mem_read(*data);
@@ -633,16 +642,18 @@ namespace Core
 		pc += 2;
 	}
 	// absolute indexed mode using x
-	void absix() {
+	bool absix() {
 		uint16_t addr = ((uint8_t) x) + (((uint16_t) mem_read(pc+2)) << 8) + mem_read(pc+1);
 		data = (int8_t *) mem_ptr(addr);
 		pc += 3;
+		return ((addr) & 0xFF00) != (((((uint16_t) mem_read(pc-1))<<8)+ mem_read(pc-2)) & 0xFF00);
 	}
 	// absolute indexed mode using y
-	void absiy() {
+	bool absiy() {
 		uint16_t addr = ((uint8_t) y) + (((uint16_t) mem_read(pc+2)) << 8) + mem_read(pc+1);
 		data = (int8_t *) mem_ptr(addr);
 		pc += 3;
+		return ((addr) & 0xFF00) != (((((uint16_t) mem_read(pc-1))<<8)+ mem_read(pc-2)) & 0xFF00);
 	}
 	// zero-paged indexed mode using x
 	void zrpix() {
@@ -663,11 +674,16 @@ namespace Core
 		pc += 3;
 	}
 	// post-indexed indirect mode (uses y)
-	void iiy() {
+	bool iiy() {
 		uint16_t imm = mem_read(pc+1);
 		uint16_t addr = (((uint16_t) mem_read(imm+1) << 8)) + mem_read(imm) + ((uint8_t) y);
 		data = (int8_t *) mem_ptr(addr);
 		pc += 2;
+		return ((addr) & 0xFF00) != (((((uint16_t) mem_read(imm+1))<<8)+ mem_read(imm)) & 0xFF00);
+	}
+	//for branch instructions, call after updating pc normally
+	bool branchPageCross (int8_t offset) {		
+		return ((pc) & 0xFF00) != ((pc+offset) & 0xFF00);
 	}
 
 	void execute()
@@ -680,64 +696,116 @@ namespace Core
 			uint8_t opcode = mem_read(pc);
 			if(DEBUG) {
 				printf("Reading instruction %x on line %lx\n", opcode, pc);
-/*				dumpcore();
-				cc++;
-				if (cc%10 == 0) {
-					getchar();
-				} */
+				if(NESTEST) {
+					dumpcore();
+					cc++;
+					if (cc%10 == 0) {
+						getchar();
+					}
+				}
 //				scanf("%c", &c);
 			}
 			
 			uint8_t sics = 0;	
+			bool branched = false;
+			bool brPC = false;
 			switch(opcode)
 			{
 				//branch instructions
 				case 0xd0:
 				{
 					pc += 2;
-					BNE(mem_read(pc-1));
+					cyc += 2;
+					brPC = branchPageCross(mem_read(pc-1));
+					branched = BNE(mem_read(pc-1));
+					if (branched) {
+						cyc++;
+						cyc += brPC ? 1 : 0;
+					}
 					break;
 				}
 				case 0xf0:
 				{
 					pc += 2;
-					BEQ(mem_read(pc-1));
+					cyc += 2;	
+					brPC = branchPageCross(mem_read(pc-1));
+					branched = BEQ(mem_read(pc-1));
+					if (branched) {
+						cyc++;
+						cyc += brPC ? 1 : 0;
+					}
 					break;
 				}
 				case 0x10:
 				{
 					pc += 2;
-					BPL(mem_read(pc-1));
+					cyc += 2;
+					brPC = branchPageCross(mem_read(pc-1));
+					branched = BPL(mem_read(pc-1));
+					if (branched) {
+						cyc++;
+						cyc += brPC ? 1 : 0;
+					}
 					break;
 				}
 				case 0x30:
 				{
 					pc += 2;
-					BMI(mem_read(pc-1));
+					cyc += 2;
+					brPC = branchPageCross(mem_read(pc-1));
+					branched = BMI(mem_read(pc-1));
+					if (branched) {
+						cyc++;
+						cyc += brPC ? 1 : 0;
+					}
 					break;
 				}
 				case 0x50:
 				{
 					pc += 2;
-					BVC(mem_read(pc-1));
+					cyc += 2;
+					brPC = branchPageCross(mem_read(pc-1));
+					branched = BVC(mem_read(pc-1));
+					if (branched) {
+						cyc++;
+						cyc += brPC ? 1 : 0;
+					}
 					break;
 				}
 				case 0x70:
 				{
 					pc += 2;
-					BVS(mem_read(pc-1));
+					cyc += 2;
+					brPC = branchPageCross(mem_read(pc-1));
+					branched = BVS(mem_read(pc-1));
+					if (branched) {
+						cyc++;
+						cyc += brPC ? 1 : 0;
+					}
 					break;
 				}
 				case 0x90:
 				{
 					pc += 2;
-					BCC(mem_read(pc-1));
+					cyc += 2;
+					brPC = branchPageCross(mem_read(pc-1));
+					branched = BCC(mem_read(pc-1));
+					if (branched) {
+						cyc++;
+						cyc += brPC ? 1 : 0;
+					}
 					break;
 				}
 				case 0xb0:
 				{
 					pc += 2;
-					BCS(mem_read(pc-1));
+					cyc += 2;
+					brPC = branchPageCross(mem_read(pc-1));
+					branched = BCS(mem_read(pc-1));
+					if (branched) {
+						cyc++;
+						cyc += brPC ? 1 : 0;
+					}
 					break;
 				}
 
@@ -746,42 +814,49 @@ namespace Core
 				{
 					pc++;
 					TAX();
+					cyc+=2;
 					break;
 				}
                 case 0x8a:
                 {
                     pc++;
                     TXA();
+					cyc+=2;
                     break;
                 }
                 case 0xca:
                 {
                     pc++;
                     DEX();
+					cyc+=2;
                     break;
                 }
                 case 0xe8:
                 {
                     pc++;
                     INX();
+					cyc+=2;
                     break;
                 }
 				case 0xa8:
 				{
 					pc++;
 					TAY();
+					cyc+=2;
 					break;
 				}
                 case 0x98:
                 {
                     pc++;
                     TYA();
+					cyc+=2;
                     break;
                 }
                 case 0x88:
                 {
                     pc++;
                     DEY();
+					cyc+=2;
                     break;
                 }
 
@@ -789,6 +864,7 @@ namespace Core
                 {
                     pc++;
                     INY();
+					cyc+=2;
                     break;
                 }
 				
@@ -797,6 +873,7 @@ namespace Core
 				case 0xea:
 				{
 					pc++;	
+					cyc+=2;
 					break;
 				}
 				
@@ -805,42 +882,49 @@ namespace Core
 				{
 					pc++;
 					CLC();
+					cyc+=2;
 					break;
 				}	
                 case 0x38:
 				{
 					pc++;
 					SEC();
+					cyc+=2;
 					break;
 				}
                 case 0x58:
 				{
 					pc++;
 					CLI();
+					cyc+=2;
 					break;
 				}
                 case 0x78:
 				{
 					pc++;
 					SEI();
+					cyc+=2;
 					break;
 				}
                 case 0xb8:
 				{
 					pc++;
 					CLV();
+					cyc+=2;
 					break;
 				}
                 case 0xd8:
 				{
 					pc++;
 					CLD();
+					cyc+=2;
 					break;
 				}
                 case 0xf8:
 				{
 					pc++;
 					SED();
+					cyc+=2;
 					std::cout << "Warning: entered decimal mode" << std::endl;
 					break;
 				}
@@ -850,36 +934,42 @@ namespace Core
 				{
 					pc++;
 					TXS();
+					cyc+=2;
 					break;
 				}
 				case 0xba:
 				{
 					pc++;
 					TSX();
+					cyc+=2;
 					break;
 				}
 				case 0x48:
 				{
 					pc++;
 					PHA();
+					cyc+=3;
 					break;
 				}
 				case 0x68:
 				{
 					pc++;
 					PLA();
+					cyc+=4;
 					break;
 				}
 				case 0x08:
 				{
 					pc++;
 					PHP();
+					cyc+=3;
 					break;
 				}
 				case 0x28:
 				{
 					pc++;
 					PLP();
+					cyc+=4;
 					break;
 				}
 	
@@ -888,48 +978,56 @@ namespace Core
 				{
 					immMode();
 					AND();
+					cyc+=2;
 					break;	
 				}
 				case 0x25:
 				{
 					zrpMode();
 					AND();
+					cyc+=3;
 					break;	
 				}
 				case 0x35:
 				{
 					zrpix();
 					AND();
+					cyc+=4;
 					break;	
 				}
 				case 0x2D:
 				{
 					absMode();
 					AND();
+					cyc+=4;
 					break;	
 				}
 				case 0x3D:
 				{
-					absix();
+					cyc += absix() ? 1 : 0;
 					AND();
+					cyc+=4;
 					break;	
 				}
 				case 0x39:
 				{
-					absiy();
+					cyc += absiy() ? 1 : 0;
 					AND();
+					cyc += 4;
 					break;	
 				}
 				case 0x21:
 				{
 					iix();
 					AND();
+					cyc+=6;
 					break;	
 				}
 				case 0x31:
 				{
-					iiy();
+					cyc += iiy() ? 1 : 0;
 					AND();
+					cyc += 5;
 					break;	
 				}
 
@@ -938,30 +1036,35 @@ namespace Core
 				{
 					accMode();
 					ASL();
+					cyc+=2;
 					break;
 				}
 				case 0x06:
 				{
 					zrpMode();
 					ASL();
+					cyc+=5;
 					break;
 				}
 				case 0x16:
 				{
 					zrpix();
 					ASL();
+					cyc+=6;
 					break;
 				}
 				case 0x0E:
 				{
 					absMode();
 					ASL();
+					cyc+=6;
 					break;
 				}
 				case 0x1E:
 				{
 					absix();
 					ASL();
+					cyc+=7;
 					break;
 				}
 				
@@ -970,42 +1073,49 @@ namespace Core
 				{
 					zrpMode();
 					STA();
+					cyc+=3;
 					break;
 				}
 				case 0x95:
 				{
 					zrpix();
 					STA();
+					cyc+=4;
 					break;
 				}
 				case 0x8d:
 				{
 					absMode();
 					STA();
+					cyc+=4;
 					break;
 				}
 				case 0x9d:
 				{
 					absix();
 					STA();
+					cyc+=5;
 					break;
 				}
 				case 0x99:
 				{
 					absiy();
 					STA();
+					cyc+=5;
 					break;
 				}
 				case 0x81:
 				{
 					iix();
 					STA();
+					cyc+=6;
 					break;
 				}
 				case 0x91:
 				{
 					iiy();
 					STA();
+					cyc+=6;
 					break;
 				}
 
@@ -1014,18 +1124,21 @@ namespace Core
 				{
 					zrpMode();
 					STX();
+					cyc+=3;
 					break;
 				}
 				case 0x96:
 				{
 					zrpiy();
 					STX();
+					cyc+=4;
 					break;
 				}
 				case 0x8e:
 				{
 					absMode();
 					STX();
+					cyc+=4;
 					break;
 				}
 
@@ -1034,18 +1147,21 @@ namespace Core
 				{
 					zrpMode();
 					STY();
+					cyc+=3;
 					break;
 				}
 				case 0x94:
 				{
 					zrpix();
 					STY();
+					cyc+=4;
 					break;
 				}
 				case 0x8c:
 				{
 					absMode();
 					STY();
+					cyc+=4;
 					break;
 				}
 				
@@ -1054,48 +1170,56 @@ namespace Core
 				{
 					immMode();
 					CMP();
+					cyc+=2;
 					break;
 				}
 				case 0xc5:
 				{
 					zrpMode();
 					CMP();
+					cyc+=3;
 					break;
 				}
 				case 0xd5:
 				{
 					zrpix();
 					CMP();
+					cyc+=4;
 					break;
 				}
 				case 0xcd:
 				{
 					absMode();
 					CMP();
+					cyc+=4;
 					break;
 				}
 				case 0xdd:
 				{
-					absix();
+					cyc += absix() ? 1 : 0;
 					CMP();
+					cyc+=4;
 					break;
 				}
 				case 0xd9:
 				{
-					absiy();
+					cyc += absiy() ? 1 : 0;
 					CMP();
+					cyc += 4;
 					break;
 				}
 				case 0xc1:
 				{
 					iix();
 					CMP();
+					cyc+=6;
 					break;
 				}
 				case 0xd1:
 				{
-					iiy();
+					cyc += iiy() ? 1 : 0;
 					CMP();
+					cyc += 5;
 					break;
 				}
 
@@ -1104,18 +1228,21 @@ namespace Core
 				{
 					immMode();
 					CPX();
+					cyc+=2;
 					break;
 				}
 				case 0xe4:
 				{
 					zrpMode();
 					CPX();
+					cyc+=3;
 					break;
 				}
 				case 0xec:
 				{
 					absMode();
 					CPX();
+					cyc+=4;
 					break;
 				}
 				
@@ -1124,18 +1251,21 @@ namespace Core
 				{
 					immMode();
 					CPY();
+					cyc+=2;
 					break;
 				}
 				case 0xc4:
 				{
 					zrpMode();
 					CPY();
+					cyc+=3;
 					break;
 				}
 				case 0xcc:
 				{
 					absMode();
 					CPY();
+					cyc+=4;
 					break;
 				}
 
@@ -1144,24 +1274,28 @@ namespace Core
 				{
 					zrpMode();
 					DEC();
+					cyc+=5;
 					break;
 				}
 				case 0xd6:
 				{
 					zrpix();
 					DEC();
+					cyc+=6;
 					break;
 				}
 				case 0xce:
 				{
 					absMode();
 					DEC();
+					cyc+=6;
 					break;
 				}
 				case 0xde:
 				{
 					absix();
 					DEC();
+					cyc+=7;
 					break;
 				}
 				
@@ -1170,24 +1304,28 @@ namespace Core
 				{
 					zrpMode();
 					INC();
+					cyc+=5;
 					break;
 				}
 				case 0xf6:
 				{
 					zrpix();
 					INC();
+					cyc+=6;
 					break;
 				}
 				case 0xee:
 				{
 					absMode();
 					INC();
+					cyc+=6;
 					break;
 				}
 				case 0xfe:
 				{
 					absix();
 					INC();
+					cyc+=7;
 					break;
 				}
 
@@ -1195,6 +1333,7 @@ namespace Core
 				case 0x60:
 				{
 					RTS();
+					cyc+=6;
 					break;	
 				}
 
@@ -1203,48 +1342,56 @@ namespace Core
 				{
 					immMode();
 					LDA();
+					cyc+=2;
 					break;
 				}
 				case 0xa5:
 				{
 					zrpMode();
 					LDA();
+					cyc+=3;
 					break;
 				}
 				case 0xb5:
 				{
 					zrpix();
 					LDA();
+					cyc+=4;
 					break;
 				}
 				case 0xad:
 				{
 					absMode();
 					LDA();
+					cyc+=4;
 					break;
 				}
 				case 0xbd:
 				{
-					absix();
+					cyc += absix() ? 1 : 0;
 					LDA();
+					cyc += 4;
 					break;
 				}
 				case 0xb9:
 				{
-					absiy();
+					cyc += absiy() ? 1 : 0;
 					LDA();
+					cyc += 4;
 					break;
 				}
 				case 0xa1:
 				{
 					iix();
 					LDA();
+					cyc+=6;
 					break;
 				}
 				case 0xb1:
 				{
-					iiy();
+					cyc += iiy() ? 1 : 0;
 					LDA();
+					cyc += 5;
 					break;
 				}
 
@@ -1253,30 +1400,35 @@ namespace Core
 				{
 					immMode();
 					LDX();
+					cyc+=2;
 					break;
 				}
 				case 0xa6:
 				{
 					zrpMode();
 					LDX();
+					cyc+=3;
 					break;
 				}
 				case 0xb6:
 				{
 					zrpiy();
 					LDX();
+					cyc+=4;
 					break;
 				}
 				case 0xae:
 				{
 					absMode();
 					LDX();
+					cyc+=4;
 					break;
 				}
 				case 0xbe:
 				{
-					absiy();
+					cyc += absiy() ? 1 : 0;
 					LDX();
+					cyc += 4;
 					break;
 				}
 				
@@ -1285,30 +1437,35 @@ namespace Core
 				{
 					immMode();
 					LDY();
+					cyc+=2;
 					break;
 				}
 				case 0xa4:
 				{
 					zrpMode();
 					LDY();
+					cyc+=3;
 					break;
 				}
 				case 0xb4:
 				{
 					zrpix();
 					LDY();
+					cyc+=4;
 					break;
 				}
 				case 0xac:
 				{
 					absMode();
 					LDY();
+					cyc+=4;
 					break;
 				}
 				case 0xbc:
 				{
-					absix();
+					cyc += absix() ? 1 : 0;
 					LDY();
+					cyc += 4;
 					break;
 				}
 				
@@ -1317,12 +1474,14 @@ namespace Core
 				{
 					zrpMode();
 					BIT();
+					cyc+=3;
 					break;
 				}
 				case 0x2c:
 				{
 					absMode();
 					BIT();
+					cyc+=4;
 					break;
 				}
 
@@ -1331,48 +1490,56 @@ namespace Core
 				{
 					immMode();
 					ADC();
+					cyc+=2;
 					break;
 				}
 				case 0x65:
 				{
 					zrpMode();
 					ADC();
+					cyc+=3;
 					break;
 				}
 				case 0x75:
 				{
 					zrpix();
 					ADC();
+					cyc+=4;
 					break;
 				}
 				case 0x6d:
 				{
 					absMode();
 					ADC();
+					cyc+=4;
 					break;
 				}
 				case 0x7d:
 				{
-					absix();
+					cyc += absix() ? 1 : 0;
 					ADC();
+					cyc += 4;
 					break;
 				}
 				case 0x79:
 				{
-					absiy();
+					cyc += absiy() ? 1 : 0 ;
 					ADC();
+					cyc += 4;
 					break;
 				}
 				case 0x61:
 				{
 					iix();
 					ADC();
+					cyc+=6;
 					break;
 				}
 				case 0x71:
 				{
-					iiy();
+					cyc += iiy() ? 1 : 0;
 					ADC();
+					cyc += 5;
 					break;
 				}
 
@@ -1381,48 +1548,56 @@ namespace Core
 				{
 					immMode();
 					SBC();
+					cyc+=2;
 					break;
 				}
 				case 0xe5:
 				{
 					zrpMode();
 					SBC();
+					cyc+=3;
 					break;
 				}
 				case 0xf5:
 				{
 					zrpix();
 					SBC();
+					cyc+=4;
 					break;
 				}
 				case 0xed:
 				{
 					absMode();
 					SBC();
+					cyc+=4;
 					break;
 				}
 				case 0xfd:
 				{
-					absix();
+					cyc += absix() ? 1 : 0;
 					SBC();
+					cyc += 4;
 					break;
 				}
 				case 0xf9:
 				{
-					absiy();
+					cyc += absiy() ? 1 : 0;
 					SBC();
+					cyc += 4;
 					break;
 				}
 				case 0xe1:
 				{
 					iix();
 					SBC();
+					cyc+=6;
 					break;
 				}
 				case 0xf1:
 				{
-					iiy();
+					cyc += iiy() ? 1 : 0;
 					SBC();
+					cyc += 5;
 					break;
 				}
 				
@@ -1432,48 +1607,56 @@ namespace Core
 				{
 					immMode();
 					EOR();
+					cyc+=2;
 					break;
 				}
 				case 0x45:
 				{
 					zrpMode();
 					EOR();
+					cyc+=3;
 					break;
 				}
 				case 0x55:
 				{
 					zrpix();
 					EOR();
+					cyc+=4;
 					break;
 				}
 				case 0x4d:
 				{
 					absMode();
 					EOR();
+					cyc+=4;
 					break;
 				}
 				case 0x5d:
 				{
-					absix();
+					cyc += absix() ? 1 : 0;
 					EOR();
+					cyc += 4;
 					break;
 				}
 				case 0x59:
 				{
-					absiy();
+					cyc += absiy() ? 1 : 0;
 					EOR();
+					cyc += 4;
 					break;
 				}
 				case 0x41:
 				{
 					iix();
 					EOR();
+					cyc+=6;
 					break;
 				}
 				case 0x51:
 				{
-					iiy();
+					cyc += iiy() ? 1 : 0;
 					EOR();
+					cyc += 5;
 					break;
 				}
 
@@ -1482,30 +1665,35 @@ namespace Core
 				{
 					accMode();
 					LSR();
+					cyc+=2;
 					break;
 				}
 				case 0x46:
 				{
 					zrpMode();
 					LSR();
+					cyc+=5;
 					break;
 				}
 				case 0x56:
 				{
 					zrpix();
 					LSR();
+					cyc+=6;
 					break;
 				}
 				case 0x4e:
 				{
 					absMode();
 					LSR();
+					cyc+=6;
 					break;
 				}
 				case 0x5e:
 				{
 					absix();
 					LSR();
+					cyc+=7;
 					break;
 				}
 
@@ -1514,48 +1702,56 @@ namespace Core
 				{
 					immMode();
 					ORA();
+					cyc+=2;
 					break;
 				}
 				case 0x05:
 				{
 					zrpMode();
 					ORA();
+					cyc+=3;
 					break;
 				}
 				case 0x15:
 				{
 					zrpix();
 					ORA();
+					cyc+=4;
 					break;
 				}
 				case 0x0d:
 				{
 					absMode();
 					ORA();
+					cyc+=4;
 					break;
 				}
 				case 0x1d:
 				{
-					absix();
+					cyc += absix() ? 1 : 0;
 					ORA();
+					cyc += 4;
 					break;
 				}
 				case 0x19:
 				{
-					absiy();
+					cyc += absiy() ? 1 : 0;
 					ORA();
+					cyc += 4;
 					break;
 				}
 				case 0x01:
 				{
 					iix();
 					ORA();
+					cyc+=6;
 					break;
 				}
 				case 0x11:
 				{
-					iiy();
+					cyc += iiy() ? 1 : 0;
 					ORA();
+					cyc += 5;
 					break;
 				}
 
@@ -1564,30 +1760,35 @@ namespace Core
 				{
 					accMode();
 					ROL();
+					cyc+=2;
 					break;
 				}
 				case 0x26:
 				{
 					zrpMode();
 					ROL();
+					cyc+=5;
 					break;
 				}
 				case 0x36:
 				{
 					zrpix();
 					ROL();
+					cyc+=6;
 					break;
 				}
 				case 0x2e:
 				{
 					absMode();
 					ROL();
+					cyc+=6;
 					break;
 				}
 				case 0x3e:
 				{
 					absix();
 					ROL();
+					cyc+=7;
 					break;
 				}
 
@@ -1596,30 +1797,35 @@ namespace Core
 				{
 					accMode();
 					ROR();
+					cyc+=2;
 					break;
 				}
 				case 0x66:
 				{
 					zrpMode();
 					ROR();
+					cyc+=5;
 					break;
 				}
 				case 0x76:
 				{
 					zrpix();
 					ROR();
+					cyc+=6;
 					break;
 				}
 				case 0x6e:
 				{
 					absMode();
 					ROR();
+					cyc+=6;
 					break;
 				}
 				case 0x7e:
 				{
 					absix();
 					ROR();
+					cyc+=7;
 					break;
 				}
 				case 0x4c:
@@ -1627,6 +1833,7 @@ namespace Core
 					// Absolute jump
 					pc += 3;
 					pc = (uint16_t) mem_read(pc-1) << 8 | mem_read(pc-2);
+					cyc+=3;
 					break;
 				}
 				case 0x6c:
@@ -1635,12 +1842,14 @@ namespace Core
 					pc += 3;
 					uint16_t jmp_mem = (uint16_t) mem_read(pc-1) << 8 | mem_read(pc-2);
 					pc = (uint16_t) mem_read(jmp_mem + 1) << 8 | mem_read(jmp_mem);
+					cyc+=5;
 					break;
 				}
 				case 0x20:
 				{
 					pc += 3;
 					JSR();
+					cyc+=6;
 					break;
 				}
 
@@ -1652,7 +1861,7 @@ namespace Core
 				} 
 			}
 			
-			cyc += sics;	
+//			cyc += sics;	
 		}	
 	}
 
@@ -1664,9 +1873,11 @@ namespace Core
 		printf("A: %x\n", (uint8_t) a);
 		printf("X: %x\n", (uint8_t) x);
 		printf("Y: %x\n", (uint8_t) y);
-		printf("Flags: N=%d, V=%d, D=%d, I=%d, Z=%d, C=%d\n", p.n, p.v, p.d, p.i, p.z, p.c);
-		//uint8_t statusReg = (p.n<<7) | (p.v<<6)| (1<<5) | (p.d<<3) | (p.i<<2) | (p.z<<1) | p.c;
-		//printf("Flag byte P:  %x\n", statusReg);
+		//printf("Flags: N=%d, V=%d, D=%d, I=%d, Z=%d, C=%d\n", p.n, p.v, p.d, p.i, p.z, p.c);
+		printf("Cycles: %llu\n", cyc+7);
+		uint8_t statusReg = (p.n<<7) | (p.v<<6)| (1<<5) | (p.d<<3) | (p.i<<2) | (p.z<<1) | p.c;
+		printf("Flag byte P:  %x\n", statusReg);
+/*
 		for(int i = 0; i < 0x1000; i++)
 		{
 			printf("%02x ", mem_read(i));
@@ -1674,7 +1885,7 @@ namespace Core
 				std::cout << std::endl;
 		}
 		std::cout << std::endl;
-		
+*/		
 		if  (NESTEST) {
 			printf("02h = %x and 03h = %x\n", mem_read(2), mem_read(3));
 		}
@@ -1700,6 +1911,7 @@ namespace Core
 		a = 0;
 		x = 0;
 		y = 0;
+		cyc = 0;
 		sp = 0xfd;
 		mem_write(0x4017, 0x00);
 		mem_write(0x4015, 0x00);
