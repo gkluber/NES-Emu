@@ -25,7 +25,8 @@ int main(int argc, char *argv[])
 			return 0;
 		}
 		
-		window = SDL_CreateWindow("NES Emulator", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+		SDL_Init(SDL_INIT_VIDEO);
+		SDL_CreateWindowAndRenderer(SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN, &window, &renderer);
 		if(window == nullptr)
 		{
 			printf("Could not create window: %s\n", SDL_GetError());
@@ -34,10 +35,11 @@ int main(int argc, char *argv[])
 		
 		screen = SDL_GetWindowSurface(window);
 		
-		SDL_FillRect(screen, nullptr, SDL_MapRGB(screen->format, 0xff, 0xff, 0xff));
+		//SDL_FillRect(screen, nullptr, SDL_MapRGB(screen->format, 0xff, 0xff, 0xff));
 		PPU::drawBackground();
+		SDL_RenderPresent(renderer);
 		
-		SDL_UpdateWindowSurface(window);
+		//SDL_UpdateWindowSurface(window);
 		
 		SDL_Delay(2000);
 
