@@ -98,8 +98,9 @@ bool read_ines(const char *name)
 	if(DEBUG)
 	{
 		std::cout << "Rom contents:" << std::endl;
-//		for(int i = 0; i < 16384*2; i++)
-//			printf("$%x = %x\n", i + 0x8000, Core::rom[i]);
+		int max = 16384*2;
+		for(int i = 0; i < 1000; i++)
+			printf("$%x = %x\n", i + 0x8000, Core::rom[i]);
 	}
 	
 	rom.close();

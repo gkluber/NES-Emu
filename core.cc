@@ -434,6 +434,18 @@ namespace Core
 	}
 	//old line is p.c = res < max<int8_t>(a, -d)
 	//CMP Compare Memory with Accumulator
+
+	inline void Old_CMP() {
+
+		int8_t offset = *data + (int8_t)(1-1);
+		bool opsign = a >> 7;
+		int8_t result = a - offset;
+		bool sign = result >> 7;
+		p.n = result < 0;
+		p.z = result == 0;
+		p.c = result >= 0;
+	}
+
 	inline void CMP () {
 		int8_t d = (int8_t)(*data);
 		int8_t res = (int8_t) a - d;
@@ -441,8 +453,10 @@ namespace Core
 		bool opsign = a < 0;
 		p.n = res<0;
 		p.z = res==0;
-		p.c = d <= a;
+//		p.c = ((uint32_t)((uint8_t)a) + (uint32_t)((~*data)) + 1) > 255;
+		p.c = (uint8_t)a >= (uint8_t)d;
 	}
+
 
 	//CPX Compare Memory with Accumulator
 	//TODO, check that I detected carry properly
@@ -452,7 +466,7 @@ namespace Core
 		int8_t res = x - d;
 		p.n = res < 0;
 		p.z = res == 0;
-		p.c = d <= x;
+		p.c = (uint8_t)x >= (uint8_t)d;
 	}
 
 	//CPY Compare Memory with Accumulator
@@ -463,23 +477,27 @@ namespace Core
 		int8_t res = y - d;
 		p.n = res<0;
 		p.z = res==0;
-		p.c = d <= y;
+		p.c = (uint8_t)y >= (uint8_t)d;
 	}
 
 	//DEC Decrement Memory (By 1)
+	//TODO changed
 	inline void DEC () 
 	{
-		mem_write((*data), mem_read(*data) -1);
-		int8_t sRes = (int8_t)(mem_read(*data));
+		(*data)--;
+//		mem_write((*data), mem_read(*data) -1);
+		int8_t sRes = (int8_t)(*data);
 		p.n = sRes < 0;
 		p.z = sRes == 0;	
 	}
 
 	//INC Increment Memory (By 1)
+	//TODO changed
 	inline void INC () 
 	{
-		mem_write((*data), mem_read(*data)+1);
-		int8_t sRes = (int8_t)(mem_read(*data));
+		(*data)++;
+//		mem_write((*data), mem_read(*data)+1);
+		int8_t sRes = (int8_t)(*data);
 		p.n = sRes <0;
 		p.z = sRes == 0;
 	}
@@ -518,24 +536,26 @@ namespace Core
 
 	//BIT Bit Test
 	inline void BIT () {
-		printf("here %x \n", mem_read(*data)); //TODO
-		p.n = ((int8_t)(mem_read(*data)))<0;
-		p.v = (1 << 6) & (mem_read(*data));
-		uint8_t res = a & mem_read(*data);
+		printf("here %x addr of %x \n", mem_read(*data), *data); //TODO
+		p.n = ((int8_t)(*data))<0;
+		p.v = (1 << 6) & (*data);
+		uint8_t res = a & (*data);
 		p.z = res == 0;
 	}
 
 	//ADC Add Memory, with Carry, to Accumulator
 	inline void ADC () 
 	{
-		int8_t offset = *data + (int8_t) p.c;
+		int8_t offset = *data + (uint8_t) p.c;
 		bool opsign = a >> 7;
 		int8_t result = a + offset;
 		bool sign = result >> 7; // resultant 
 		p.n = result < 0;
 		p.z = result == 0;
-		p.c = p.c + (uint32_t)(*data) + (uint32_t)a > 255;
-		p.v = sign && !opsign;
+		printf("test val %x %x %x\n" ,(uint32_t)p.c, (uint32_t)((uint8_t)(*data)), ((uint32_t)((uint8_t)a)));
+		p.c = ((uint32_t)p.c + (uint32_t)((uint8_t)(*data)) + (uint32_t)a) > 255;
+		int32_t testSum = (int32_t)(p.c + (uint32_t)(*data) + a);
+		p.v = testSum >127 || testSum<-128;
 		a = result;
 	}
 	inline void old_ADC () 
@@ -660,13 +680,13 @@ namespace Core
 	}
 	// zero-paged indexed mode using x
 	void zrpix() {
-		uint16_t addr = ((uint8_t) x) + mem_read(pc+1);
+		uint8_t addr = ((uint8_t) x) + mem_read(pc+1);
 		data = (int8_t *) mem_ptr(addr);
 		pc += 2;
 	}
 	// zero-paged indexed mode using y
 	void zrpiy() {
-		uint16_t addr = ((uint8_t) y) + mem_read(pc+1);
+		uint8_t addr = ((uint8_t) y) + mem_read(pc+1);
 		data = (int8_t *) mem_ptr(addr);
 		pc += 2;
 	}
@@ -1927,6 +1947,9 @@ namespace Core
 		
 		if (NESTEST) {
 				pc = 0xc000;
+				ram[0x0180] = 0x33;
+				ram[0x017f] = 0x69;
+
 		}
 		if(DEBUG)
 			printf("pc=%x\n", pc);
