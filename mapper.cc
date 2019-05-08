@@ -113,8 +113,9 @@ bool read_ines(const char *name)
 	for(int i = 0; i < 2; i++)
 	{
 		uint64_t *pattern_table = PPU::patterns[i];
-		for(int j = 0; j < 512; j++)
+		for(int j = 0; j < 512; j++) {
 			rom.read((char *) &pattern_table[j], 8);
+		}
 		
 	}
 			

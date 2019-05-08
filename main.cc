@@ -39,9 +39,6 @@ int main(int argc, char *argv[])
 		
 		screen = SDL_GetWindowSurface(window);
 		
-		PPU::drawBackground();
-		SDL_RenderPresent(renderer);
-		
 		//SDL_UpdateWindowSurface(window);
 		
 		// Read file
@@ -55,6 +52,9 @@ int main(int argc, char *argv[])
 		// Power NES
 		Core::power();
 		PPU::power();
+		PPU::drawBackground();
+		
+		SDL_RenderPresent(renderer);
 		
 		SDL_Event e;
 		uint8_t kbState = 0; //address $4016 w/ input state
