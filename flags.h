@@ -1,4 +1,4 @@
 #pragma once
 
-const bool DEBUG = true;
+const bool DEBUG = false;
 const bool NESTEST =false;

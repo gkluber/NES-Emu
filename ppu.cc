@@ -30,11 +30,22 @@ namespace PPU
 	 
 	bool odd_frame;
 
+	uint8_t colors[256][4];
+
 	uint64_t patterns[2][512];
 	uint8_t nametables[4][1024];
 	uint8_t palettes[8][4];
 	uint8_t OAM[64][4];
 	uint8_t secOAM[8][4];
+
+	void initColors() {
+		for (int i = 0; i < 256; i++) {
+			for (int j = 0; j < 3; j++) {
+				colors[i][j] = rand() % 256;
+			}
+			colors[i][3] = 255;
+		}
+	}
 		
 	uint8_t** readBackgroundPalette(int x, int y) {
 		// find attribute in memory for the segment of the window at coordinates x,y
@@ -57,29 +68,35 @@ namespace PPU
 
 		// decode the colors
 		// return their rgba values
-		uint8_t** rgbaVals = 0;
+		uint8_t** rgbaVals = new uint8_t*[4];
+		for (int i = 0; i < 4; i++) {
+			rgbaVals[i] = new uint8_t[4];
+			for (int j = 0; j < 4; j++)
+				rgbaVals[i][j] = colors[palettes[paletteOffset][i]][j];
+		}
 		return rgbaVals;
 	}
 
 	// draws a 8x8 pixel region, pattern0 takes the 8byte pattern segment that affects bit 0 of the color
 	void drawTile(int x, int y, uint64_t pattern0, uint64_t pattern1, uint8_t** colors) {
+		//printf("%x\n", 
 		//SDL_RenderClear(renderer);
 		// draw pixels
 		for (int r = 0; r < 8; r++)
 			for (int c = 0; c < 8; c++) {
 				uint8_t index = r * 8 + c;
-				uint8_t color = (((pattern1 >> index) & 1) << 1) + (pattern0 >> index);
+				uint8_t color = ((((pattern1 >> index) & 1) << 1) + (pattern0 >> index)) & 3;
 				// TODO uncomment these lines when colors is properly created
-				//SDL_SetRenderDrawColor(renderer, colors[color][0], colors[color][1], colors[color][2], colors[color][3]);
 				SDL_RenderClear(renderer);
-				SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+				SDL_SetRenderDrawColor(renderer, colors[color][0], colors[color][1], colors[color][2], colors[color][3]);
+				//SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
 				SDL_RenderDrawPoint(renderer, x + c, y + r);
 			}
 	}
 
 	// dummy implementation for rendering only the background
 	void drawBackground() {
-		for (int r = 0; r < 30; r++)
+		for (int r = 0; r < 30; r++) {
 			for (int c = 0; c < 32; c++) {
 				uint16_t background = (nametables[PPUCTRL & 3][r*32 + c] * 2);
 				int x = c * 8;
@@ -89,6 +106,7 @@ namespace PPU
 				uint64_t pattern1 = patterns[(PPUCTRL >> 3) & 1][background + 1];
 				drawTile(x, y, pattern0, pattern1, colors);
 			}
+		}
 	}
 
 	inline void resetSecondaryOAM()
@@ -108,6 +126,7 @@ namespace PPU
 		PPUADDR = 0;
 		PPUDATA = 0;
 		odd_frame = false;
+		initColors();
 	}
 	
 	void reset()
