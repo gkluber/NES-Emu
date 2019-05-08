@@ -45,6 +45,7 @@ namespace Core
 	extern Flags p;
 		
 	void execute();
+	int step();
 	void dumpcore();	
 	
 	void power();
