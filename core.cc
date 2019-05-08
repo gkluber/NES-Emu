@@ -692,17 +692,26 @@ namespace Core
 	}
 	// pre-indexed indirect mode (uses x)
 	void iix() {
-		uint16_t addr = (((uint16_t) mem_read(((uint8_t) x) + mem_read(pc+2) + 1)) << 8) + mem_read(((uint8_t) x) + mem_read(pc+1));
+		printf("value at 0x200 %x\n", mem_read(200));
+		uint8_t interAddr = (uint8_t) x + (uint8_t)mem_read(pc+1);
+		printf("inter addr %x\n", interAddr);
+		uint16_t addr = ((uint16_t)mem_read((uint8_t)(interAddr + 1)) << 8) + (uint16_t)mem_read(interAddr);
+		printf("addr is %x\n", addr);
 		data = (int8_t *) mem_ptr(addr);
-		pc += 3;
+		printf("finally data %x\n", *data);
+		pc += 2;
 	}
 	// post-indexed indirect mode (uses y)
 	bool iiy() {
-		uint16_t imm = mem_read(pc+1);
-		uint16_t addr = (((uint16_t) mem_read(imm+1) << 8)) + mem_read(imm) + ((uint8_t) y);
+		printf("val at 0x00ff is %x at 0x0000 is %x\n", mem_read(0x00ff), mem_read(0x0000));
+		uint8_t imm = (uint8_t)(mem_read(pc+1));
+		printf("imm is %x and imm+1 is %x\n", imm, (uint8_t)(imm+1));
+		uint16_t addr = ((((uint16_t) (uint8_t)(mem_read((uint8_t)(imm+1)))) << 8)) + mem_read(imm) + ((uint8_t) y);
+		printf("then addr is %x which is %x + %x + %x\n", addr, (uint16_t) (uint8_t)(mem_read((uint8_t)(imm+1))), mem_read(imm),(uint8_t) y);
 		data = (int8_t *) mem_ptr(addr);
+		printf("and data is %x\n", *data);
 		pc += 2;
-		return ((addr) & 0xFF00) != (((((uint16_t) mem_read(imm+1))<<8)+ mem_read(imm)) & 0xFF00);
+		return ((addr) & 0xFF00) != (((((uint16_t) mem_read((uint8_t)(imm+1)))<<8)+ mem_read(imm)) & 0xFF00);
 	}
 	//for branch instructions, call after updating pc normally
 	bool branchPageCross (int8_t offset) {		
@@ -1873,6 +1882,37 @@ namespace Core
 					pc += 3;
 					JSR();
 					cyc+=6;
+					break;
+				}
+
+				//BRK
+/*				case 0x00:
+				{
+					pc += 2;
+					mem_write(sp,(uint8_t)( pc&0xff00));
+					sp--;
+					mem_write(sp, (uint8_t)(pc&0x00ff));
+					sp--;
+					uint8_t statusReg = (p.n<<7) | (p.v<<6)| (1<<5) | (p.d<<3) | (p.i<<2) | (p.z<<1) | p.c;
+				}
+*/
+				//RTI
+				case 0x40:
+				{
+					sp++;
+					uint8_t newSR = mem_read(sp);
+					sp++;
+					uint16_t newPC = (uint8_t)(mem_read(sp));
+					sp++;
+					newPC += ((uint16_t)((uint8_t)(mem_read(sp)))) << 8;
+					p.n = newSR & 0x80;
+					p.v = newSR & 0x40;
+					p.d = newSR & 0x08;
+					p.i = newSR & 0x04;
+					p.z = newSR & 0x02;
+					p.c = newSR & 0x01;
+					pc = newPC;
+					cyc += 6;
 					break;
 				}
 
