@@ -1,5 +1,6 @@
 #include "core.h"
 #include "flags.h"
+#include "ppu.h"
 
 #include <iostream>
 #include <fstream>
@@ -103,5 +104,19 @@ bool read_ines(const char *name)
 			printf("$%x = %x\n", i + 0x8000, Core::rom[i]);
 	}
 	
+	if(chr_size != 1)
+	{
+		std::cerr << "Error: CHR size must be 1!" << std::endl;
+		return false;
+	}
+	int chr_bytes = 8192 * chr_size;
+	for(int i = 0; i < 2; i++)
+	{
+		uint64_t *pattern_table = PPU::patterns[i];
+		for(int j = 0; j < 512; j++)
+			rom.read((char *) &pattern_table[j], 8);
+		
+	}
+			
 	rom.close();
 }
