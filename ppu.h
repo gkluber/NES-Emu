@@ -30,6 +30,17 @@ namespace PPU
 	extern uint8_t OAM[64][4];
 	extern uint8_t secOAM[8][4];
 		
+	void writePPUCTRL();
+	void writePPUMASK();
+	void writeOAMADDR();
+	void writeOAMDATA();
+	void writePPUSCROLL();
+	void writePPUADDR();
+	void writePPUDATA();
+	void writeOAMDMA();
+		
+	uint8_t** readBackgroundPalette(int x, int y);
+		// find attribute in memory for the segment of the window at coordinates x,y
 	void power();
 	void reset();
 	void drawBackground();

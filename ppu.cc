@@ -46,6 +46,31 @@ namespace PPU
 			colors[i][3] = 255;
 		}
 	}
+
+	void writePPUCTRL() {
+
+	}
+	void writePPUMASK() {
+
+	}
+	void writeOAMADDR() {
+
+	}
+	void writeOAMDATA() {
+
+	}
+	void writePPUSCROLL() {
+
+	}
+	void writePPUADDR() {
+
+	}
+	void writePPUDATA() {
+
+	}
+	void writeOAMDMA() {
+
+	}
 		
 	uint8_t** readBackgroundPalette(int x, int y) {
 		// find attribute in memory for the segment of the window at coordinates x,y

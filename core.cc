@@ -66,14 +66,54 @@ namespace Core
 		{
 			// PPU registers
 			// TODO set PPU latch
-			case 0x2000: PPUCTRL = data; break;
-			case 0x2001: PPUMASK = data; break;
-			case 0x2003: OAMADDR = data; break;
-			case 0x2004: OAMDATA = data; break;
-			case 0x2005: PPUSCROLL = data; break;
-			case 0x2006: PPUADDR = data; break;
-			case 0x2007: PPUDATA = data; break;
-			case 0x4014: OAMDMA = data; break;
+			case 0x2000: 
+			{
+				PPUCTRL = data;
+				writePPUCTRL();
+				break;
+			}
+			case 0x2001:
+			{
+				PPUMASK = data;
+				writePPUMASK();
+				break;
+			}
+			case 0x2003:
+			{
+				OAMADDR = data;
+				writeOAMADDR();
+				break;
+			}
+			case 0x2004:
+			{
+				OAMDATA = data;
+				writeOAMDATA();
+				break;
+			}
+			case 0x2005:
+			{
+				PPUSCROLL = data;
+				writePPUSCROLL();
+				break;
+			}
+			case 0x2006:
+			{
+				PPUADDR = data;
+				writePPUADDR();
+				break;
+			}
+			case 0x2007:
+			{
+				PPUDATA = data;
+				writePPUDATA();
+				break;
+			}
+			case 0x4014:
+			{
+				OAMDMA = data;
+				writeOAMDMA();
+				break;
+			}
 			
 			// 2A03 register map
 			case 0x4000: SQ1_VOL = data; break;
