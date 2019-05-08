@@ -764,1208 +764,1223 @@ namespace Core
 		// TODO will also need to work with the SDL2 GUI
 		uint32_t cc = 0;
 		while(true)
-		{
-			uint8_t opcode = mem_read(pc);
-			if(DEBUG) {
-				printf("Reading instruction %x on line %lx\n", opcode, pc);
-				if(NESTEST) {
-					dumpcore();
-					cc++;
-					if (cc%10 == 0) {
-						getchar();
-					}
-				}
-//				scanf("%c", &c);
-			}
-			
-			uint8_t sics = 0;	
-			bool branched = false;
-			bool brPC = false;
-			switch(opcode)
-			{
-				//branch instructions
-				case 0xd0:
-				{
-					pc += 2;
-					cyc += 2;
-					brPC = branchPageCross(mem_read(pc-1));
-					branched = BNE(mem_read(pc-1));
-					if (branched) {
-						cyc++;
-						cyc += brPC ? 1 : 0;
-					}
-					break;
-				}
-				case 0xf0:
-				{
-					pc += 2;
-					cyc += 2;	
-					brPC = branchPageCross(mem_read(pc-1));
-					branched = BEQ(mem_read(pc-1));
-					if (branched) {
-						cyc++;
-						cyc += brPC ? 1 : 0;
-					}
-					break;
-				}
-				case 0x10:
-				{
-					pc += 2;
-					cyc += 2;
-					brPC = branchPageCross(mem_read(pc-1));
-					branched = BPL(mem_read(pc-1));
-					if (branched) {
-						cyc++;
-						cyc += brPC ? 1 : 0;
-					}
-					break;
-				}
-				case 0x30:
-				{
-					pc += 2;
-					cyc += 2;
-					brPC = branchPageCross(mem_read(pc-1));
-					branched = BMI(mem_read(pc-1));
-					if (branched) {
-						cyc++;
-						cyc += brPC ? 1 : 0;
-					}
-					break;
-				}
-				case 0x50:
-				{
-					pc += 2;
-					cyc += 2;
-					brPC = branchPageCross(mem_read(pc-1));
-					branched = BVC(mem_read(pc-1));
-					if (branched) {
-						cyc++;
-						cyc += brPC ? 1 : 0;
-					}
-					break;
-				}
-				case 0x70:
-				{
-					pc += 2;
-					cyc += 2;
-					brPC = branchPageCross(mem_read(pc-1));
-					branched = BVS(mem_read(pc-1));
-					if (branched) {
-						cyc++;
-						cyc += brPC ? 1 : 0;
-					}
-					break;
-				}
-				case 0x90:
-				{
-					pc += 2;
-					cyc += 2;
-					brPC = branchPageCross(mem_read(pc-1));
-					branched = BCC(mem_read(pc-1));
-					if (branched) {
-						cyc++;
-						cyc += brPC ? 1 : 0;
-					}
-					break;
-				}
-				case 0xb0:
-				{
-					pc += 2;
-					cyc += 2;
-					brPC = branchPageCross(mem_read(pc-1));
-					branched = BCS(mem_read(pc-1));
-					if (branched) {
-						cyc++;
-						cyc += brPC ? 1 : 0;
-					}
-					break;
-				}
-
-				// register instructions
-				case 0xaa:
-				{
-					pc++;
-					TAX();
-					cyc+=2;
-					break;
-				}
-                case 0x8a:
-                {
-                    pc++;
-                    TXA();
-					cyc+=2;
-                    break;
-                }
-                case 0xca:
-                {
-                    pc++;
-                    DEX();
-					cyc+=2;
-                    break;
-                }
-                case 0xe8:
-                {
-                    pc++;
-                    INX();
-					cyc+=2;
-                    break;
-                }
-				case 0xa8:
-				{
-					pc++;
-					TAY();
-					cyc+=2;
-					break;
-				}
-                case 0x98:
-                {
-                    pc++;
-                    TYA();
-					cyc+=2;
-                    break;
-                }
-                case 0x88:
-                {
-                    pc++;
-                    DEY();
-					cyc+=2;
-                    break;
-                }
-
-                case 0xc8:
-                {
-                    pc++;
-                    INY();
-					cyc+=2;
-                    break;
-                }
-				
-
-				//NOP
-				case 0xea:
-				{
-					pc++;	
-					cyc+=2;
-					break;
-				}
-				
-				//Flag (Processor Status) Instructions
-                case 0x18:
-				{
-					pc++;
-					CLC();
-					cyc+=2;
-					break;
-				}	
-                case 0x38:
-				{
-					pc++;
-					SEC();
-					cyc+=2;
-					break;
-				}
-                case 0x58:
-				{
-					pc++;
-					CLI();
-					cyc+=2;
-					break;
-				}
-                case 0x78:
-				{
-					pc++;
-					SEI();
-					cyc+=2;
-					break;
-				}
-                case 0xb8:
-				{
-					pc++;
-					CLV();
-					cyc+=2;
-					break;
-				}
-                case 0xd8:
-				{
-					pc++;
-					CLD();
-					cyc+=2;
-					break;
-				}
-                case 0xf8:
-				{
-					pc++;
-					SED();
-					cyc+=2;
-					std::cout << "Warning: entered decimal mode" << std::endl;
-					break;
-				}
-
-				//Stack Instructions
-				case 0x9a:
-				{
-					pc++;
-					TXS();
-					cyc+=2;
-					break;
-				}
-				case 0xba:
-				{
-					pc++;
-					TSX();
-					cyc+=2;
-					break;
-				}
-				case 0x48:
-				{
-					pc++;
-					PHA();
-					cyc+=3;
-					break;
-				}
-				case 0x68:
-				{
-					pc++;
-					PLA();
-					cyc+=4;
-					break;
-				}
-				case 0x08:
-				{
-					pc++;
-					PHP();
-					cyc+=3;
-					break;
-				}
-				case 0x28:
-				{
-					pc++;
-					PLP();
-					cyc+=4;
-					break;
-				}
+			step();
+	}
 	
-				//Bitwise AND with Accumulator
-				case 0x29:
-				{
-					immMode();
-					AND();
-					cyc+=2;
-					break;	
+	int step()
+	{
+		// Initialize for NESTEST
+		static bool initialized = false;
+		static uint32_t cc;
+		if(!initialized)
+		{
+			initialized = true;
+			cc = 0;
+		}
+		
+		uint8_t opcode = mem_read(pc);
+		if(DEBUG) {
+			printf("Reading instruction %x on line %lx\n", opcode, pc);
+			if(NESTEST) {
+				dumpcore();
+				cc++;
+				if (cc%10 == 0) {
+					getchar();
 				}
-				case 0x25:
-				{
-					zrpMode();
-					AND();
-					cyc+=3;
-					break;	
+			}
+//				scanf("%c", &c);
+		}
+		
+		uint8_t sics = 0;	
+		bool branched = false;
+		bool brPC = false;
+		
+		// Reset cycle count
+		cyc = 0;
+		
+		switch(opcode)
+		{
+			//branch instructions
+			case 0xd0:
+			{
+				pc += 2;
+				cyc += 2;
+				brPC = branchPageCross(mem_read(pc-1));
+				branched = BNE(mem_read(pc-1));
+				if (branched) {
+					cyc++;
+					cyc += brPC ? 1 : 0;
 				}
-				case 0x35:
-				{
-					zrpix();
-					AND();
-					cyc+=4;
-					break;	
+				break;
+			}
+			case 0xf0:
+			{
+				pc += 2;
+				cyc += 2;	
+				brPC = branchPageCross(mem_read(pc-1));
+				branched = BEQ(mem_read(pc-1));
+				if (branched) {
+					cyc++;
+					cyc += brPC ? 1 : 0;
 				}
-				case 0x2D:
-				{
-					absMode();
-					AND();
-					cyc+=4;
-					break;	
+				break;
+			}
+			case 0x10:
+			{
+				pc += 2;
+				cyc += 2;
+				brPC = branchPageCross(mem_read(pc-1));
+				branched = BPL(mem_read(pc-1));
+				if (branched) {
+					cyc++;
+					cyc += brPC ? 1 : 0;
 				}
-				case 0x3D:
-				{
-					cyc += absix() ? 1 : 0;
-					AND();
-					cyc+=4;
-					break;	
+				break;
+			}
+			case 0x30:
+			{
+				pc += 2;
+				cyc += 2;
+				brPC = branchPageCross(mem_read(pc-1));
+				branched = BMI(mem_read(pc-1));
+				if (branched) {
+					cyc++;
+					cyc += brPC ? 1 : 0;
 				}
-				case 0x39:
-				{
-					cyc += absiy() ? 1 : 0;
-					AND();
-					cyc += 4;
-					break;	
+				break;
+			}
+			case 0x50:
+			{
+				pc += 2;
+				cyc += 2;
+				brPC = branchPageCross(mem_read(pc-1));
+				branched = BVC(mem_read(pc-1));
+				if (branched) {
+					cyc++;
+					cyc += brPC ? 1 : 0;
 				}
-				case 0x21:
-				{
-					iix();
-					AND();
-					cyc+=6;
-					break;	
+				break;
+			}
+			case 0x70:
+			{
+				pc += 2;
+				cyc += 2;
+				brPC = branchPageCross(mem_read(pc-1));
+				branched = BVS(mem_read(pc-1));
+				if (branched) {
+					cyc++;
+					cyc += brPC ? 1 : 0;
 				}
-				case 0x31:
-				{
-					cyc += iiy() ? 1 : 0;
-					AND();
-					cyc += 5;
-					break;	
+				break;
+			}
+			case 0x90:
+			{
+				pc += 2;
+				cyc += 2;
+				brPC = branchPageCross(mem_read(pc-1));
+				branched = BCC(mem_read(pc-1));
+				if (branched) {
+					cyc++;
+					cyc += brPC ? 1 : 0;
 				}
+				break;
+			}
+			case 0xb0:
+			{
+				pc += 2;
+				cyc += 2;
+				brPC = branchPageCross(mem_read(pc-1));
+				branched = BCS(mem_read(pc-1));
+				if (branched) {
+					cyc++;
+					cyc += brPC ? 1 : 0;
+				}
+				break;
+			}
 
-				//Arithmetic Shift Left
-				case 0x0a:
-				{
-					accMode();
-					ASL();
-					cyc+=2;
-					break;
-				}
-				case 0x06:
-				{
-					zrpMode();
-					ASL();
-					cyc+=5;
-					break;
-				}
-				case 0x16:
-				{
-					zrpix();
-					ASL();
-					cyc+=6;
-					break;
-				}
-				case 0x0E:
-				{
-					absMode();
-					ASL();
-					cyc+=6;
-					break;
-				}
-				case 0x1E:
-				{
-					absix();
-					ASL();
-					cyc+=7;
-					break;
-				}
-				
-				//STA Store Accumulator in Memory
-				case 0x85:
-				{
-					zrpMode();
-					STA();
-					cyc+=3;
-					break;
-				}
-				case 0x95:
-				{
-					zrpix();
-					STA();
-					cyc+=4;
-					break;
-				}
-				case 0x8d:
-				{
-					absMode();
-					STA();
-					cyc+=4;
-					break;
-				}
-				case 0x9d:
-				{
-					absix();
-					STA();
-					cyc+=5;
-					break;
-				}
-				case 0x99:
-				{
-					absiy();
-					STA();
-					cyc+=5;
-					break;
-				}
-				case 0x81:
-				{
-					iix();
-					STA();
-					cyc+=6;
-					break;
-				}
-				case 0x91:
-				{
-					iiy();
-					STA();
-					cyc+=6;
-					break;
-				}
+			// register instructions
+			case 0xaa:
+			{
+				pc++;
+				TAX();
+				cyc+=2;
+				break;
+			}
+			case 0x8a:
+			{
+				pc++;
+				TXA();
+				cyc+=2;
+				break;
+			}
+			case 0xca:
+			{
+				pc++;
+				DEX();
+				cyc+=2;
+				break;
+			}
+			case 0xe8:
+			{
+				pc++;
+				INX();
+				cyc+=2;
+				break;
+			}
+			case 0xa8:
+			{
+				pc++;
+				TAY();
+				cyc+=2;
+				break;
+			}
+			case 0x98:
+			{
+				pc++;
+				TYA();
+				cyc+=2;
+				break;
+			}
+			case 0x88:
+			{
+				pc++;
+				DEY();
+				cyc+=2;
+				break;
+			}
 
-				//STX Store Index Register X in Memory
-				case 0x86:
-				{
-					zrpMode();
-					STX();
-					cyc+=3;
-					break;
-				}
-				case 0x96:
-				{
-					zrpiy();
-					STX();
-					cyc+=4;
-					break;
-				}
-				case 0x8e:
-				{
-					absMode();
-					STX();
-					cyc+=4;
-					break;
-				}
-
-				//STY Store Index Register Y in Memory
-				case 0x84:
-				{
-					zrpMode();
-					STY();
-					cyc+=3;
-					break;
-				}
-				case 0x94:
-				{
-					zrpix();
-					STY();
-					cyc+=4;
-					break;
-				}
-				case 0x8c:
-				{
-					absMode();
-					STY();
-					cyc+=4;
-					break;
-				}
-				
-				//CMP Compare Memory With Accumulator
-				case 0xc9:
-				{
-					immMode();
-					CMP();
-					cyc+=2;
-					break;
-				}
-				case 0xc5:
-				{
-					zrpMode();
-					CMP();
-					cyc+=3;
-					break;
-				}
-				case 0xd5:
-				{
-					zrpix();
-					CMP();
-					cyc+=4;
-					break;
-				}
-				case 0xcd:
-				{
-					absMode();
-					CMP();
-					cyc+=4;
-					break;
-				}
-				case 0xdd:
-				{
-					cyc += absix() ? 1 : 0;
-					CMP();
-					cyc+=4;
-					break;
-				}
-				case 0xd9:
-				{
-					cyc += absiy() ? 1 : 0;
-					CMP();
-					cyc += 4;
-					break;
-				}
-				case 0xc1:
-				{
-					iix();
-					CMP();
-					cyc+=6;
-					break;
-				}
-				case 0xd1:
-				{
-					cyc += iiy() ? 1 : 0;
-					CMP();
-					cyc += 5;
-					break;
-				}
-
-				//CPX Compare Index Register X with Memory
-				case 0xe0:
-				{
-					immMode();
-					CPX();
-					cyc+=2;
-					break;
-				}
-				case 0xe4:
-				{
-					zrpMode();
-					CPX();
-					cyc+=3;
-					break;
-				}
-				case 0xec:
-				{
-					absMode();
-					CPX();
-					cyc+=4;
-					break;
-				}
-				
-				//CPY Compare Index Register Y with Memory
-				case 0xc0:
-				{
-					immMode();
-					CPY();
-					cyc+=2;
-					break;
-				}
-				case 0xc4:
-				{
-					zrpMode();
-					CPY();
-					cyc+=3;
-					break;
-				}
-				case 0xcc:
-				{
-					absMode();
-					CPY();
-					cyc+=4;
-					break;
-				}
-
-				//DEC Decrement Memory (by 1)
-				case 0xc6:
-				{
-					zrpMode();
-					DEC();
-					cyc+=5;
-					break;
-				}
-				case 0xd6:
-				{
-					zrpix();
-					DEC();
-					cyc+=6;
-					break;
-				}
-				case 0xce:
-				{
-					absMode();
-					DEC();
-					cyc+=6;
-					break;
-				}
-				case 0xde:
-				{
-					absix();
-					DEC();
-					cyc+=7;
-					break;
-				}
-				
-				//INC Increment Memory (By 1)
-				case 0xe6:
-				{
-					zrpMode();
-					INC();
-					cyc+=5;
-					break;
-				}
-				case 0xf6:
-				{
-					zrpix();
-					INC();
-					cyc+=6;
-					break;
-				}
-				case 0xee:
-				{
-					absMode();
-					INC();
-					cyc+=6;
-					break;
-				}
-				case 0xfe:
-				{
-					absix();
-					INC();
-					cyc+=7;
-					break;
-				}
-
-				//RTS Return from Subroutine
-				case 0x60:
-				{
-					RTS();
-					cyc+=6;
-					break;	
-				}
-
-				//LDA Load Accumulator from Memory
-				case 0xa9:
-				{
-					immMode();
-					LDA();
-					cyc+=2;
-					break;
-				}
-				case 0xa5:
-				{
-					zrpMode();
-					LDA();
-					cyc+=3;
-					break;
-				}
-				case 0xb5:
-				{
-					zrpix();
-					LDA();
-					cyc+=4;
-					break;
-				}
-				case 0xad:
-				{
-					absMode();
-					LDA();
-					cyc+=4;
-					break;
-				}
-				case 0xbd:
-				{
-					cyc += absix() ? 1 : 0;
-					LDA();
-					cyc += 4;
-					break;
-				}
-				case 0xb9:
-				{
-					cyc += absiy() ? 1 : 0;
-					LDA();
-					cyc += 4;
-					break;
-				}
-				case 0xa1:
-				{
-					iix();
-					LDA();
-					cyc+=6;
-					break;
-				}
-				case 0xb1:
-				{
-					cyc += iiy() ? 1 : 0;
-					LDA();
-					cyc += 5;
-					break;
-				}
-
-				//LDX Load Index Register X from Memory
-				case 0xa2:
-				{
-					immMode();
-					LDX();
-					cyc+=2;
-					break;
-				}
-				case 0xa6:
-				{
-					zrpMode();
-					LDX();
-					cyc+=3;
-					break;
-				}
-				case 0xb6:
-				{
-					zrpiy();
-					LDX();
-					cyc+=4;
-					break;
-				}
-				case 0xae:
-				{
-					absMode();
-					LDX();
-					cyc+=4;
-					break;
-				}
-				case 0xbe:
-				{
-					cyc += absiy() ? 1 : 0;
-					LDX();
-					cyc += 4;
-					break;
-				}
-				
-				//LDY Load Index Register Y from Memory
-				case 0xa0:
-				{
-					immMode();
-					LDY();
-					cyc+=2;
-					break;
-				}
-				case 0xa4:
-				{
-					zrpMode();
-					LDY();
-					cyc+=3;
-					break;
-				}
-				case 0xb4:
-				{
-					zrpix();
-					LDY();
-					cyc+=4;
-					break;
-				}
-				case 0xac:
-				{
-					absMode();
-					LDY();
-					cyc+=4;
-					break;
-				}
-				case 0xbc:
-				{
-					cyc += absix() ? 1 : 0;
-					LDY();
-					cyc += 4;
-					break;
-				}
-				
-				//BIT Bit Test
-				case 0x24:
-				{
-					zrpMode();
-					BIT();
-					cyc+=3;
-					break;
-				}
-				case 0x2c:
-				{
-					absMode();
-					BIT();
-					cyc+=4;
-					break;
-				}
-
-				//ADC Add Memory, with Carry, to Accumulator
-				case 0x69:
-				{
-					immMode();
-					ADC();
-					cyc+=2;
-					break;
-				}
-				case 0x65:
-				{
-					zrpMode();
-					ADC();
-					cyc+=3;
-					break;
-				}
-				case 0x75:
-				{
-					zrpix();
-					ADC();
-					cyc+=4;
-					break;
-				}
-				case 0x6d:
-				{
-					absMode();
-					ADC();
-					cyc+=4;
-					break;
-				}
-				case 0x7d:
-				{
-					cyc += absix() ? 1 : 0;
-					ADC();
-					cyc += 4;
-					break;
-				}
-				case 0x79:
-				{
-					cyc += absiy() ? 1 : 0 ;
-					ADC();
-					cyc += 4;
-					break;
-				}
-				case 0x61:
-				{
-					iix();
-					ADC();
-					cyc+=6;
-					break;
-				}
-				case 0x71:
-				{
-					cyc += iiy() ? 1 : 0;
-					ADC();
-					cyc += 5;
-					break;
-				}
-
-				// SBC SuBtract with Carry
-				case 0xe9:
-				{
-					immMode();
-					SBC();
-					cyc+=2;
-					break;
-				}
-				case 0xe5:
-				{
-					zrpMode();
-					SBC();
-					cyc+=3;
-					break;
-				}
-				case 0xf5:
-				{
-					zrpix();
-					SBC();
-					cyc+=4;
-					break;
-				}
-				case 0xed:
-				{
-					absMode();
-					SBC();
-					cyc+=4;
-					break;
-				}
-				case 0xfd:
-				{
-					cyc += absix() ? 1 : 0;
-					SBC();
-					cyc += 4;
-					break;
-				}
-				case 0xf9:
-				{
-					cyc += absiy() ? 1 : 0;
-					SBC();
-					cyc += 4;
-					break;
-				}
-				case 0xe1:
-				{
-					iix();
-					SBC();
-					cyc+=6;
-					break;
-				}
-				case 0xf1:
-				{
-					cyc += iiy() ? 1 : 0;
-					SBC();
-					cyc += 5;
-					break;
-				}
-				
-
-				// EOR bitwise exlusive OR
-				case 0x49:
-				{
-					immMode();
-					EOR();
-					cyc+=2;
-					break;
-				}
-				case 0x45:
-				{
-					zrpMode();
-					EOR();
-					cyc+=3;
-					break;
-				}
-				case 0x55:
-				{
-					zrpix();
-					EOR();
-					cyc+=4;
-					break;
-				}
-				case 0x4d:
-				{
-					absMode();
-					EOR();
-					cyc+=4;
-					break;
-				}
-				case 0x5d:
-				{
-					cyc += absix() ? 1 : 0;
-					EOR();
-					cyc += 4;
-					break;
-				}
-				case 0x59:
-				{
-					cyc += absiy() ? 1 : 0;
-					EOR();
-					cyc += 4;
-					break;
-				}
-				case 0x41:
-				{
-					iix();
-					EOR();
-					cyc+=6;
-					break;
-				}
-				case 0x51:
-				{
-					cyc += iiy() ? 1 : 0;
-					EOR();
-					cyc += 5;
-					break;
-				}
-
-				// LSR logical shift right shifts 1 bit right
-				case 0x4a:
-				{
-					accMode();
-					LSR();
-					cyc+=2;
-					break;
-				}
-				case 0x46:
-				{
-					zrpMode();
-					LSR();
-					cyc+=5;
-					break;
-				}
-				case 0x56:
-				{
-					zrpix();
-					LSR();
-					cyc+=6;
-					break;
-				}
-				case 0x4e:
-				{
-					absMode();
-					LSR();
-					cyc+=6;
-					break;
-				}
-				case 0x5e:
-				{
-					absix();
-					LSR();
-					cyc+=7;
-					break;
-				}
-
-				// ORA bitwise OR with accumulator
-				case 0x09:
-				{
-					immMode();
-					ORA();
-					cyc+=2;
-					break;
-				}
-				case 0x05:
-				{
-					zrpMode();
-					ORA();
-					cyc+=3;
-					break;
-				}
-				case 0x15:
-				{
-					zrpix();
-					ORA();
-					cyc+=4;
-					break;
-				}
-				case 0x0d:
-				{
-					absMode();
-					ORA();
-					cyc+=4;
-					break;
-				}
-				case 0x1d:
-				{
-					cyc += absix() ? 1 : 0;
-					ORA();
-					cyc += 4;
-					break;
-				}
-				case 0x19:
-				{
-					cyc += absiy() ? 1 : 0;
-					ORA();
-					cyc += 4;
-					break;
-				}
-				case 0x01:
-				{
-					iix();
-					ORA();
-					cyc+=6;
-					break;
-				}
-				case 0x11:
-				{
-					cyc += iiy() ? 1 : 0;
-					ORA();
-					cyc += 5;
-					break;
-				}
-
-				// ROL rotate left
-				case 0x2a:
-				{
-					accMode();
-					ROL();
-					cyc+=2;
-					break;
-				}
-				case 0x26:
-				{
-					zrpMode();
-					ROL();
-					cyc+=5;
-					break;
-				}
-				case 0x36:
-				{
-					zrpix();
-					ROL();
-					cyc+=6;
-					break;
-				}
-				case 0x2e:
-				{
-					absMode();
-					ROL();
-					cyc+=6;
-					break;
-				}
-				case 0x3e:
-				{
-					absix();
-					ROL();
-					cyc+=7;
-					break;
-				}
-
-				// ROR rotate right
-				case 0x6a:
-				{
-					accMode();
-					ROR();
-					cyc+=2;
-					break;
-				}
-				case 0x66:
-				{
-					zrpMode();
-					ROR();
-					cyc+=5;
-					break;
-				}
-				case 0x76:
-				{
-					zrpix();
-					ROR();
-					cyc+=6;
-					break;
-				}
-				case 0x6e:
-				{
-					absMode();
-					ROR();
-					cyc+=6;
-					break;
-				}
-				case 0x7e:
-				{
-					absix();
-					ROR();
-					cyc+=7;
-					break;
-				}
-				case 0x4c:
-				{
-					// Absolute jump
-					pc += 3;
-					pc = (uint16_t) mem_read(pc-1) << 8 | mem_read(pc-2);
-					cyc+=3;
-					break;
-				}
-				case 0x6c:
-				{
-					// Indirect jump
-					pc += 3;
-					uint16_t jmp_mem = (uint16_t) mem_read(pc-1) << 8 | mem_read(pc-2);
-					pc = (uint16_t) mem_read(jmp_mem + 1) << 8 | mem_read(jmp_mem);
-					cyc+=5;
-					break;
-				}
-				case 0x20:
-				{
-					pc += 3;
-					JSR();
-					cyc+=6;
-					break;
-				}
-
-				//BRK
-/*				case 0x00:
-				{
-					pc += 2;
-					mem_write(sp,(uint8_t)( pc&0xff00));
-					sp--;
-					mem_write(sp, (uint8_t)(pc&0x00ff));
-					sp--;
-					uint8_t statusReg = (p.n<<7) | (p.v<<6)| (1<<5) | (p.d<<3) | (p.i<<2) | (p.z<<1) | p.c;
-				}
-*/
-				//RTI
-				case 0x40:
-				{
-					sp++;
-					uint8_t newSR = mem_read(sp);
-					sp++;
-					uint16_t newPC = (uint8_t)(mem_read(sp));
-					sp++;
-					newPC += ((uint16_t)((uint8_t)(mem_read(sp)))) << 8;
-					p.n = newSR & 0x80;
-					p.v = newSR & 0x40;
-					p.d = newSR & 0x08;
-					p.i = newSR & 0x04;
-					p.z = newSR & 0x02;
-					p.c = newSR & 0x01;
-					pc = newPC;
-					cyc += 6;
-					break;
-				}
-
-				default:
-				{
-					printf("Encountered invalid opcode %x on line %x!\n", opcode, pc);
-					dumpcore();
-					return;
-				} 
+			case 0xc8:
+			{
+				pc++;
+				INY();
+				cyc+=2;
+				break;
 			}
 			
-//			cyc += sics;	
-		}	
+
+			//NOP
+			case 0xea:
+			{
+				pc++;	
+				cyc+=2;
+				break;
+			}
+			
+			//Flag (Processor Status) Instructions
+			case 0x18:
+			{
+				pc++;
+				CLC();
+				cyc+=2;
+				break;
+			}	
+			case 0x38:
+			{
+				pc++;
+				SEC();
+				cyc+=2;
+				break;
+			}
+			case 0x58:
+			{
+				pc++;
+				CLI();
+				cyc+=2;
+				break;
+			}
+			case 0x78:
+			{
+				pc++;
+				SEI();
+				cyc+=2;
+				break;
+			}
+			case 0xb8:
+			{
+				pc++;
+				CLV();
+				cyc+=2;
+				break;
+			}
+			case 0xd8:
+			{
+				pc++;
+				CLD();
+				cyc+=2;
+				break;
+			}
+			case 0xf8:
+			{
+				pc++;
+				SED();
+				cyc+=2;
+				std::cout << "Warning: entered decimal mode" << std::endl;
+				break;
+			}
+
+			//Stack Instructions
+			case 0x9a:
+			{
+				pc++;
+				TXS();
+				cyc+=2;
+				break;
+			}
+			case 0xba:
+			{
+				pc++;
+				TSX();
+				cyc+=2;
+				break;
+			}
+			case 0x48:
+			{
+				pc++;
+				PHA();
+				cyc+=3;
+				break;
+			}
+			case 0x68:
+			{
+				pc++;
+				PLA();
+				cyc+=4;
+				break;
+			}
+			case 0x08:
+			{
+				pc++;
+				PHP();
+				cyc+=3;
+				break;
+			}
+			case 0x28:
+			{
+				pc++;
+				PLP();
+				cyc+=4;
+				break;
+			}
+
+			//Bitwise AND with Accumulator
+			case 0x29:
+			{
+				immMode();
+				AND();
+				cyc+=2;
+				break;	
+			}
+			case 0x25:
+			{
+				zrpMode();
+				AND();
+				cyc+=3;
+				break;	
+			}
+			case 0x35:
+			{
+				zrpix();
+				AND();
+				cyc+=4;
+				break;	
+			}
+			case 0x2D:
+			{
+				absMode();
+				AND();
+				cyc+=4;
+				break;	
+			}
+			case 0x3D:
+			{
+				cyc += absix() ? 1 : 0;
+				AND();
+				cyc+=4;
+				break;	
+			}
+			case 0x39:
+			{
+				cyc += absiy() ? 1 : 0;
+				AND();
+				cyc += 4;
+				break;	
+			}
+			case 0x21:
+			{
+				iix();
+				AND();
+				cyc+=6;
+				break;	
+			}
+			case 0x31:
+			{
+				cyc += iiy() ? 1 : 0;
+				AND();
+				cyc += 5;
+				break;	
+			}
+
+			//Arithmetic Shift Left
+			case 0x0a:
+			{
+				accMode();
+				ASL();
+				cyc+=2;
+				break;
+			}
+			case 0x06:
+			{
+				zrpMode();
+				ASL();
+				cyc+=5;
+				break;
+			}
+			case 0x16:
+			{
+				zrpix();
+				ASL();
+				cyc+=6;
+				break;
+			}
+			case 0x0E:
+			{
+				absMode();
+				ASL();
+				cyc+=6;
+				break;
+			}
+			case 0x1E:
+			{
+				absix();
+				ASL();
+				cyc+=7;
+				break;
+			}
+			
+			//STA Store Accumulator in Memory
+			case 0x85:
+			{
+				zrpMode();
+				STA();
+				cyc+=3;
+				break;
+			}
+			case 0x95:
+			{
+				zrpix();
+				STA();
+				cyc+=4;
+				break;
+			}
+			case 0x8d:
+			{
+				absMode();
+				STA();
+				cyc+=4;
+				break;
+			}
+			case 0x9d:
+			{
+				absix();
+				STA();
+				cyc+=5;
+				break;
+			}
+			case 0x99:
+			{
+				absiy();
+				STA();
+				cyc+=5;
+				break;
+			}
+			case 0x81:
+			{
+				iix();
+				STA();
+				cyc+=6;
+				break;
+			}
+			case 0x91:
+			{
+				iiy();
+				STA();
+				cyc+=6;
+				break;
+			}
+
+			//STX Store Index Register X in Memory
+			case 0x86:
+			{
+				zrpMode();
+				STX();
+				cyc+=3;
+				break;
+			}
+			case 0x96:
+			{
+				zrpiy();
+				STX();
+				cyc+=4;
+				break;
+			}
+			case 0x8e:
+			{
+				absMode();
+				STX();
+				cyc+=4;
+				break;
+			}
+
+			//STY Store Index Register Y in Memory
+			case 0x84:
+			{
+				zrpMode();
+				STY();
+				cyc+=3;
+				break;
+			}
+			case 0x94:
+			{
+				zrpix();
+				STY();
+				cyc+=4;
+				break;
+			}
+			case 0x8c:
+			{
+				absMode();
+				STY();
+				cyc+=4;
+				break;
+			}
+			
+			//CMP Compare Memory With Accumulator
+			case 0xc9:
+			{
+				immMode();
+				CMP();
+				cyc+=2;
+				break;
+			}
+			case 0xc5:
+			{
+				zrpMode();
+				CMP();
+				cyc+=3;
+				break;
+			}
+			case 0xd5:
+			{
+				zrpix();
+				CMP();
+				cyc+=4;
+				break;
+			}
+			case 0xcd:
+			{
+				absMode();
+				CMP();
+				cyc+=4;
+				break;
+			}
+			case 0xdd:
+			{
+				cyc += absix() ? 1 : 0;
+				CMP();
+				cyc+=4;
+				break;
+			}
+			case 0xd9:
+			{
+				cyc += absiy() ? 1 : 0;
+				CMP();
+				cyc += 4;
+				break;
+			}
+			case 0xc1:
+			{
+				iix();
+				CMP();
+				cyc+=6;
+				break;
+			}
+			case 0xd1:
+			{
+				cyc += iiy() ? 1 : 0;
+				CMP();
+				cyc += 5;
+				break;
+			}
+
+			//CPX Compare Index Register X with Memory
+			case 0xe0:
+			{
+				immMode();
+				CPX();
+				cyc+=2;
+				break;
+			}
+			case 0xe4:
+			{
+				zrpMode();
+				CPX();
+				cyc+=3;
+				break;
+			}
+			case 0xec:
+			{
+				absMode();
+				CPX();
+				cyc+=4;
+				break;
+			}
+			
+			//CPY Compare Index Register Y with Memory
+			case 0xc0:
+			{
+				immMode();
+				CPY();
+				cyc+=2;
+				break;
+			}
+			case 0xc4:
+			{
+				zrpMode();
+				CPY();
+				cyc+=3;
+				break;
+			}
+			case 0xcc:
+			{
+				absMode();
+				CPY();
+				cyc+=4;
+				break;
+			}
+
+			//DEC Decrement Memory (by 1)
+			case 0xc6:
+			{
+				zrpMode();
+				DEC();
+				cyc+=5;
+				break;
+			}
+			case 0xd6:
+			{
+				zrpix();
+				DEC();
+				cyc+=6;
+				break;
+			}
+			case 0xce:
+			{
+				absMode();
+				DEC();
+				cyc+=6;
+				break;
+			}
+			case 0xde:
+			{
+				absix();
+				DEC();
+				cyc+=7;
+				break;
+			}
+			
+			//INC Increment Memory (By 1)
+			case 0xe6:
+			{
+				zrpMode();
+				INC();
+				cyc+=5;
+				break;
+			}
+			case 0xf6:
+			{
+				zrpix();
+				INC();
+				cyc+=6;
+				break;
+			}
+			case 0xee:
+			{
+				absMode();
+				INC();
+				cyc+=6;
+				break;
+			}
+			case 0xfe:
+			{
+				absix();
+				INC();
+				cyc+=7;
+				break;
+			}
+
+			//RTS Return from Subroutine
+			case 0x60:
+			{
+				RTS();
+				cyc+=6;
+				break;	
+			}
+
+			//LDA Load Accumulator from Memory
+			case 0xa9:
+			{
+				immMode();
+				LDA();
+				cyc+=2;
+				break;
+			}
+			case 0xa5:
+			{
+				zrpMode();
+				LDA();
+				cyc+=3;
+				break;
+			}
+			case 0xb5:
+			{
+				zrpix();
+				LDA();
+				cyc+=4;
+				break;
+			}
+			case 0xad:
+			{
+				absMode();
+				LDA();
+				cyc+=4;
+				break;
+			}
+			case 0xbd:
+			{
+				cyc += absix() ? 1 : 0;
+				LDA();
+				cyc += 4;
+				break;
+			}
+			case 0xb9:
+			{
+				cyc += absiy() ? 1 : 0;
+				LDA();
+				cyc += 4;
+				break;
+			}
+			case 0xa1:
+			{
+				iix();
+				LDA();
+				cyc+=6;
+				break;
+			}
+			case 0xb1:
+			{
+				cyc += iiy() ? 1 : 0;
+				LDA();
+				cyc += 5;
+				break;
+			}
+
+			//LDX Load Index Register X from Memory
+			case 0xa2:
+			{
+				immMode();
+				LDX();
+				cyc+=2;
+				break;
+			}
+			case 0xa6:
+			{
+				zrpMode();
+				LDX();
+				cyc+=3;
+				break;
+			}
+			case 0xb6:
+			{
+				zrpiy();
+				LDX();
+				cyc+=4;
+				break;
+			}
+			case 0xae:
+			{
+				absMode();
+				LDX();
+				cyc+=4;
+				break;
+			}
+			case 0xbe:
+			{
+				cyc += absiy() ? 1 : 0;
+				LDX();
+				cyc += 4;
+				break;
+			}
+			
+			//LDY Load Index Register Y from Memory
+			case 0xa0:
+			{
+				immMode();
+				LDY();
+				cyc+=2;
+				break;
+			}
+			case 0xa4:
+			{
+				zrpMode();
+				LDY();
+				cyc+=3;
+				break;
+			}
+			case 0xb4:
+			{
+				zrpix();
+				LDY();
+				cyc+=4;
+				break;
+			}
+			case 0xac:
+			{
+				absMode();
+				LDY();
+				cyc+=4;
+				break;
+			}
+			case 0xbc:
+			{
+				cyc += absix() ? 1 : 0;
+				LDY();
+				cyc += 4;
+				break;
+			}
+			
+			//BIT Bit Test
+			case 0x24:
+			{
+				zrpMode();
+				BIT();
+				cyc+=3;
+				break;
+			}
+			case 0x2c:
+			{
+				absMode();
+				BIT();
+				cyc+=4;
+				break;
+			}
+
+			//ADC Add Memory, with Carry, to Accumulator
+			case 0x69:
+			{
+				immMode();
+				ADC();
+				cyc+=2;
+				break;
+			}
+			case 0x65:
+			{
+				zrpMode();
+				ADC();
+				cyc+=3;
+				break;
+			}
+			case 0x75:
+			{
+				zrpix();
+				ADC();
+				cyc+=4;
+				break;
+			}
+			case 0x6d:
+			{
+				absMode();
+				ADC();
+				cyc+=4;
+				break;
+			}
+			case 0x7d:
+			{
+				cyc += absix() ? 1 : 0;
+				ADC();
+				cyc += 4;
+				break;
+			}
+			case 0x79:
+			{
+				cyc += absiy() ? 1 : 0 ;
+				ADC();
+				cyc += 4;
+				break;
+			}
+			case 0x61:
+			{
+				iix();
+				ADC();
+				cyc+=6;
+				break;
+			}
+			case 0x71:
+			{
+				cyc += iiy() ? 1 : 0;
+				ADC();
+				cyc += 5;
+				break;
+			}
+
+			// SBC SuBtract with Carry
+			case 0xe9:
+			{
+				immMode();
+				SBC();
+				cyc+=2;
+				break;
+			}
+			case 0xe5:
+			{
+				zrpMode();
+				SBC();
+				cyc+=3;
+				break;
+			}
+			case 0xf5:
+			{
+				zrpix();
+				SBC();
+				cyc+=4;
+				break;
+			}
+			case 0xed:
+			{
+				absMode();
+				SBC();
+				cyc+=4;
+				break;
+			}
+			case 0xfd:
+			{
+				cyc += absix() ? 1 : 0;
+				SBC();
+				cyc += 4;
+				break;
+			}
+			case 0xf9:
+			{
+				cyc += absiy() ? 1 : 0;
+				SBC();
+				cyc += 4;
+				break;
+			}
+			case 0xe1:
+			{
+				iix();
+				SBC();
+				cyc+=6;
+				break;
+			}
+			case 0xf1:
+			{
+				cyc += iiy() ? 1 : 0;
+				SBC();
+				cyc += 5;
+				break;
+			}
+			
+
+			// EOR bitwise exlusive OR
+			case 0x49:
+			{
+				immMode();
+				EOR();
+				cyc+=2;
+				break;
+			}
+			case 0x45:
+			{
+				zrpMode();
+				EOR();
+				cyc+=3;
+				break;
+			}
+			case 0x55:
+			{
+				zrpix();
+				EOR();
+				cyc+=4;
+				break;
+			}
+			case 0x4d:
+			{
+				absMode();
+				EOR();
+				cyc+=4;
+				break;
+			}
+			case 0x5d:
+			{
+				cyc += absix() ? 1 : 0;
+				EOR();
+				cyc += 4;
+				break;
+			}
+			case 0x59:
+			{
+				cyc += absiy() ? 1 : 0;
+				EOR();
+				cyc += 4;
+				break;
+			}
+			case 0x41:
+			{
+				iix();
+				EOR();
+				cyc+=6;
+				break;
+			}
+			case 0x51:
+			{
+				cyc += iiy() ? 1 : 0;
+				EOR();
+				cyc += 5;
+				break;
+			}
+
+			// LSR logical shift right shifts 1 bit right
+			case 0x4a:
+			{
+				accMode();
+				LSR();
+				cyc+=2;
+				break;
+			}
+			case 0x46:
+			{
+				zrpMode();
+				LSR();
+				cyc+=5;
+				break;
+			}
+			case 0x56:
+			{
+				zrpix();
+				LSR();
+				cyc+=6;
+				break;
+			}
+			case 0x4e:
+			{
+				absMode();
+				LSR();
+				cyc+=6;
+				break;
+			}
+			case 0x5e:
+			{
+				absix();
+				LSR();
+				cyc+=7;
+				break;
+			}
+
+			// ORA bitwise OR with accumulator
+			case 0x09:
+			{
+				immMode();
+				ORA();
+				cyc+=2;
+				break;
+			}
+			case 0x05:
+			{
+				zrpMode();
+				ORA();
+				cyc+=3;
+				break;
+			}
+			case 0x15:
+			{
+				zrpix();
+				ORA();
+				cyc+=4;
+				break;
+			}
+			case 0x0d:
+			{
+				absMode();
+				ORA();
+				cyc+=4;
+				break;
+			}
+			case 0x1d:
+			{
+				cyc += absix() ? 1 : 0;
+				ORA();
+				cyc += 4;
+				break;
+			}
+			case 0x19:
+			{
+				cyc += absiy() ? 1 : 0;
+				ORA();
+				cyc += 4;
+				break;
+			}
+			case 0x01:
+			{
+				iix();
+				ORA();
+				cyc+=6;
+				break;
+			}
+			case 0x11:
+			{
+				cyc += iiy() ? 1 : 0;
+				ORA();
+				cyc += 5;
+				break;
+			}
+
+			// ROL rotate left
+			case 0x2a:
+			{
+				accMode();
+				ROL();
+				cyc+=2;
+				break;
+			}
+			case 0x26:
+			{
+				zrpMode();
+				ROL();
+				cyc+=5;
+				break;
+			}
+			case 0x36:
+			{
+				zrpix();
+				ROL();
+				cyc+=6;
+				break;
+			}
+			case 0x2e:
+			{
+				absMode();
+				ROL();
+				cyc+=6;
+				break;
+			}
+			case 0x3e:
+			{
+				absix();
+				ROL();
+				cyc+=7;
+				break;
+			}
+
+			// ROR rotate right
+			case 0x6a:
+			{
+				accMode();
+				ROR();
+				cyc+=2;
+				break;
+			}
+			case 0x66:
+			{
+				zrpMode();
+				ROR();
+				cyc+=5;
+				break;
+			}
+			case 0x76:
+			{
+				zrpix();
+				ROR();
+				cyc+=6;
+				break;
+			}
+			case 0x6e:
+			{
+				absMode();
+				ROR();
+				cyc+=6;
+				break;
+			}
+			case 0x7e:
+			{
+				absix();
+				ROR();
+				cyc+=7;
+				break;
+			}
+			case 0x4c:
+			{
+				// Absolute jump
+				pc += 3;
+				pc = (uint16_t) mem_read(pc-1) << 8 | mem_read(pc-2);
+				cyc+=3;
+				break;
+			}
+			case 0x6c:
+			{
+				// Indirect jump
+				pc += 3;
+				uint16_t jmp_mem = (uint16_t) mem_read(pc-1) << 8 | mem_read(pc-2);
+				pc = (uint16_t) mem_read(jmp_mem + 1) << 8 | mem_read(jmp_mem);
+				cyc+=5;
+				break;
+			}
+			case 0x20:
+			{
+				pc += 3;
+				JSR();
+				cyc+=6;
+				break;
+			}
+
+			//BRK
+/*				case 0x00:
+			{
+				pc += 2;
+				mem_write(sp,(uint8_t)( pc&0xff00));
+				sp--;
+				mem_write(sp, (uint8_t)(pc&0x00ff));
+				sp--;
+				uint8_t statusReg = (p.n<<7) | (p.v<<6)| (1<<5) | (p.d<<3) | (p.i<<2) | (p.z<<1) | p.c;
+			}
+*/
+			//RTI
+			case 0x40:
+			{
+				sp++;
+				uint8_t newSR = mem_read(sp);
+				sp++;
+				uint16_t newPC = (uint8_t)(mem_read(sp));
+				sp++;
+				newPC += ((uint16_t)((uint8_t)(mem_read(sp)))) << 8;
+				p.n = newSR & 0x80;
+				p.v = newSR & 0x40;
+				p.d = newSR & 0x08;
+				p.i = newSR & 0x04;
+				p.z = newSR & 0x02;
+				p.c = newSR & 0x01;
+				pc = newPC;
+				cyc += 6;
+				break;
+			}
+
+			default:
+			{
+				printf("Encountered invalid opcode %x on line %x!\n", opcode, pc);
+				dumpcore();
+			} 
+		}
+//		cyc += sics;	
+		return cyc;
 	}
 
 	void dumpcore()
