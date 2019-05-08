@@ -16,7 +16,11 @@ const unsigned int SCREEN_HEIGHT = 480;
 
 int main(int argc, char *argv[])
 {
-	if(argc == 1 || strcmp(argv[1], "gui") == 0)
+	if(argc == 1)
+	{
+		std::cout << "Not enough arguments!" << std::endl;
+	}
+	else if(strcmp(argv[1], "gui") == 0)
 	{
 		int result = SDL_Init(SDL_INIT_VIDEO);	
 		if(result < 0)
@@ -25,7 +29,8 @@ int main(int argc, char *argv[])
 			return 0;
 		}
 		
-		window = SDL_CreateWindow("NES Emulator", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+		SDL_Init(SDL_INIT_VIDEO);
+		SDL_CreateWindowAndRenderer(SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN, &window, &renderer);
 		if(window == nullptr)
 		{
 			printf("Could not create window: %s\n", SDL_GetError());
@@ -34,14 +39,23 @@ int main(int argc, char *argv[])
 		
 		screen = SDL_GetWindowSurface(window);
 		
-		SDL_FillRect(screen, nullptr, SDL_MapRGB(screen->format, 0xff, 0xff, 0xff));
 		PPU::drawBackground();
+		SDL_RenderPresent(renderer);
 		
-		SDL_UpdateWindowSurface(window);
+		//SDL_UpdateWindowSurface(window);
 		
-		SDL_Delay(2000);
-
-
+		// Read file
+		if(argc != 3)
+		{
+			std::cout << "Format: ./nes gui <filename>" << std::endl;
+			return 0;
+		}
+		read_ines(argv[2]);
+		
+		// Power NES
+		Core::power();
+		PPU::power();
+		
 		SDL_Event e;
 		uint8_t kbState = 0; //address $4016 w/ input state
 		//GAME LOOP ---------------
@@ -134,16 +148,7 @@ int main(int argc, char *argv[])
 			if (kbState !=0) {
 				//printf("Keyboard state is %d\n", kbState);
 			}
-		}
-
-		
-		SDL_DestroyWindow(window);
-		
-		SDL_Quit();	
-	}
-	else if(strcmp(argv[1], "mapper") == 0)
-	{
-		// Test mapper
+		}	
 	}
 	else if(strcmp(argv[1], "cpu") == 0)
 	{
@@ -183,6 +188,7 @@ int main(int argc, char *argv[])
 			}
 		}
 	}
+	return 0;
 }
 
 
