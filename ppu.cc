@@ -35,6 +35,9 @@ namespace PPU
 	 
 	bool odd_frame;
 	bool firstPPUADDRwrite = true;
+	uint8_t PPUDATAbuffer;
+	uint8_t PPUDATAbufferbuffer;
+	uint8_t PPUDATAmutable;
 
 	uint8_t colors[256][4];
 
@@ -56,6 +59,7 @@ namespace PPU
 
 	// writes data to current vram address
 	void writeVRAM(uint8_t data) {
+		v %= 0x4000;
 		// if writing to patterns table
 		if (v < NAMETABLE_START) {
 			uint8_t* patts = (uint8_t*) patterns[v / PATTERN_SIZE];
@@ -75,8 +79,30 @@ namespace PPU
 		}
 	}
 
-	void writePPUCTRL() {
+	// reads data from current vram address
+	uint8_t readVRAM() {
+		v %= 0x4000;
+		// if reading from patterns table
+		if (v < NAMETABLE_START) {
+			uint8_t* patts = (uint8_t*) patterns[v / PATTERN_SIZE];
+			return patts[v % PATTERN_SIZE];
+		} else if (v < PALETTE_START) {
+			printf("nametable read at %x\n", v);
+			// if reading from nametables
+			// % 4 since the 5th nametable is a mirror of the first
+			uint8_t* names = nametables[((v - NAMETABLE_START) / NAMETABLE_BLOCK_SIZE) % 4];
+			return names[v % NAMETABLE_BLOCK_SIZE];
+		} else {
+			printf("palette read at %x\n", v);
+			// else reading from palettes
+			// % 8 since 0x3f20-0x3fff are mirrors of 0x3f00-0x3f1f
+			uint8_t* pals = palettes[((v - PALETTE_START) / 4) % 8];
+			return pals[v % 4];
+		}
+	}
 
+	void writePPUCTRL() {
+		printf("PPUCTRL altered: %x\n", PPUCTRL);
 	}
 	void writePPUMASK() {
 
@@ -102,12 +128,29 @@ namespace PPU
 		}
 	}
 	void writePPUDATA() {
+		if ((PPUCTRL >> 2) & 1 == 0)
+			v -= 1;
+		else
+			v -= 32;
+		PPUDATAbuffer = PPUDATAbufferbuffer;
 		writeVRAM(PPUDATA);
 		// increment based on PPUCTRL
 		if ((PPUCTRL >> 2) & 1 == 0)
 			v += 1;
 		else
 			v += 32;
+	}
+	uint8_t* readPPUDATA() {
+		PPUDATAbufferbuffer = PPUDATAbuffer;
+		PPUDATAmutable = PPUDATAbuffer;
+		PPUDATAbuffer = readVRAM();
+		if (v >= PALETTE_START)
+			PPUDATAmutable = PPUDATAbuffer;
+		if ((PPUCTRL >> 2) & 1 == 0)
+			v += 1;
+		else
+			v += 32;
+		return &PPUDATAmutable;
 	}
 	void writeOAMDMA() {
 

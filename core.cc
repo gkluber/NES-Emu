@@ -202,7 +202,7 @@ namespace Core
 			case 0x2004: ppuReg = 5; return &OAMDATA;
 			case 0x2005: ppuReg = 6; return &PPUSCROLL;
 			case 0x2006: ppuReg = 7; return &PPUADDR;
-			case 0x2007: ppuReg = 8; return &PPUDATA;
+			case 0x2007: ppuReg = 8; return readPPUDATA();
 			case 0x4014: ppuReg = 9; return &OAMDMA;
 			
 			case 0x4015: return &DMC_STATUS;
@@ -777,7 +777,7 @@ namespace Core
 		// TODO will also need to work with the SDL2 GUI
 		uint32_t cc = 0;
 		//while(true)
-		for (int i = 0; i < 50000; i++)
+		for (int i = 0; i < 10000; i++)
 			step();
 	}
 	
