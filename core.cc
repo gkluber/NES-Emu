@@ -35,6 +35,9 @@ namespace Core
 	uint64_t cyc;
 	
 	Flags p;
+
+	uint8_t ppuReg = 0;
+	bool memAlt = false;
 	
 	uint16_t get_effective_addr(uint16_t addr)
 	{
@@ -189,15 +192,15 @@ namespace Core
 		switch(addr)
 		{
 			//TODO PPU bus latch	
-			case 0x2000: return &PPUCTRL;
-			case 0x2001: return &PPUMASK;
-			case 0x2002: return &PPUSTATUS;
-			case 0x2003: return &OAMADDR;
-			case 0x2004: return &OAMDATA;
-			case 0x2005: return &PPUSCROLL;
-			case 0x2006: return &PPUADDR;
-			case 0x2007: return &PPUDATA;
-			case 0x4014: return &OAMDMA;
+			case 0x2000: ppuReg = 1; return &PPUCTRL;
+			case 0x2001: ppuReg = 2; return &PPUMASK;
+			case 0x2002: ppuReg = 3; return &PPUSTATUS;
+			case 0x2003: ppuReg = 4; return &OAMADDR;
+			case 0x2004: ppuReg = 5; return &OAMDATA;
+			case 0x2005: ppuReg = 6; return &PPUSCROLL;
+			case 0x2006: ppuReg = 7; return &PPUADDR;
+			case 0x2007: ppuReg = 8; return &PPUDATA;
+			case 0x4014: ppuReg = 9; return &OAMDMA;
 			
 			case 0x4015: return &DMC_STATUS;
 			default:
@@ -455,22 +458,26 @@ namespace Core
 		*data = (*data) << 1;
 		p.n = (*data)<0;
 		p.z = (*data)==0;
+		memAlt = true;
 	}
 
 	//STA Store Accumulator in Memory
 	//TODO modded from a write call mem_write(*data, a);
 	inline void STA () {
 		*data = a;
+		memAlt = true;
 	}
 
 	//STX Store Index Register X in Memory
 	inline void STX () {
 		*data = x;
+		memAlt = true;
 	}
 
 	//STY Store Index Register Y in Memory
 	inline void STY () {
 		*data = y;
+		memAlt = true;
 	}
 	//old line is p.c = res < max<int8_t>(a, -d)
 	//CMP Compare Memory with Accumulator
@@ -650,6 +657,7 @@ namespace Core
 		*data = ((uint8_t) *data) >> 1;
 		p.n = false;
 		p.z = *data == 0;
+		memAlt = true;
 	}
 
 	// ORA bitwise OR with accumulator
@@ -666,6 +674,7 @@ namespace Core
 		*data = (*data << 1) | carry;
 		p.z = *data == 0;
 		p.n = *data < 0;
+		memAlt = true;
 	}
 
 	// ROR rotate right, shifts all bits right 1 pos, corray shifted into bit 7, 0 goes to carry
@@ -675,6 +684,7 @@ namespace Core
 		*data = (((uint8_t) *data) >> 1) + (carry << 7);
 		p.n = *data < 0;
 		p.z = *data == 0;
+		memAlt = true;
 	}
 
 	//HERE LIVES BOB, ALL HAIL BOB
@@ -732,24 +742,24 @@ namespace Core
 	}
 	// pre-indexed indirect mode (uses x)
 	void iix() {
-		printf("value at 0x200 %x\n", mem_read(200));
+		//printf("value at 0x200 %x\n", mem_read(200));
 		uint8_t interAddr = (uint8_t) x + (uint8_t)mem_read(pc+1);
-		printf("inter addr %x\n", interAddr);
+		//printf("inter addr %x\n", interAddr);
 		uint16_t addr = ((uint16_t)mem_read((uint8_t)(interAddr + 1)) << 8) + (uint16_t)mem_read(interAddr);
-		printf("addr is %x\n", addr);
+		//printf("addr is %x\n", addr);
 		data = (int8_t *) mem_ptr(addr);
-		printf("finally data %x\n", *data);
+		//printf("finally data %x\n", *data);
 		pc += 2;
 	}
 	// post-indexed indirect mode (uses y)
 	bool iiy() {
-		printf("val at 0x00ff is %x at 0x0000 is %x\n", mem_read(0x00ff), mem_read(0x0000));
+		//printf("val at 0x00ff is %x at 0x0000 is %x\n", mem_read(0x00ff), mem_read(0x0000));
 		uint8_t imm = (uint8_t)(mem_read(pc+1));
-		printf("imm is %x and imm+1 is %x\n", imm, (uint8_t)(imm+1));
+		//printf("imm is %x and imm+1 is %x\n", imm, (uint8_t)(imm+1));
 		uint16_t addr = ((((uint16_t) (uint8_t)(mem_read((uint8_t)(imm+1)))) << 8)) + mem_read(imm) + ((uint8_t) y);
-		printf("then addr is %x which is %x + %x + %x\n", addr, (uint16_t) (uint8_t)(mem_read((uint8_t)(imm+1))), mem_read(imm),(uint8_t) y);
+		//printf("then addr is %x which is %x + %x + %x\n", addr, (uint16_t) (uint8_t)(mem_read((uint8_t)(imm+1))), mem_read(imm),(uint8_t) y);
 		data = (int8_t *) mem_ptr(addr);
-		printf("and data is %x\n", *data);
+		//printf("and data is %x\n", *data);
 		pc += 2;
 		return ((addr) & 0xFF00) != (((((uint16_t) mem_read((uint8_t)(imm+1)))<<8)+ mem_read(imm)) & 0xFF00);
 	}
@@ -763,7 +773,8 @@ namespace Core
 		// TODO will need to accept interrupts from the system and from the PPU/APU
 		// TODO will also need to work with the SDL2 GUI
 		uint32_t cc = 0;
-		while(true)
+		//while(true)
+		for (int i = 0; i < 50000; i++)
 			step();
 	}
 	
@@ -1979,6 +1990,21 @@ namespace Core
 				dumpcore();
 			} 
 		}
+		if (ppuReg > 0 && memAlt) {
+			switch (ppuReg) {
+				case 1: writePPUCTRL(); break;
+				case 2: writePPUMASK(); break;
+				//case 3: writePPUSTATUS(); break;
+				case 4: writeOAMADDR(); break;
+				case 5: writeOAMDATA(); break;
+				case 6: writePPUSCROLL(); break;
+				case 7: writePPUADDR(); break;
+				case 8: writePPUDATA(); break;
+				case 9: writeOAMDMA(); break;
+			}
+		}
+		ppuReg = 0;
+		memAlt = false;
 //		cyc += sics;	
 		return cyc;
 	}

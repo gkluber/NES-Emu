@@ -1,6 +1,11 @@
 #include "ppu.h"
 
+#define PATTERN_SIZE 0x1000
+#define NAMETABLE_START 0x2000
 #define NAMETABLE_SIZE 0x03c0
+#define NAMETABLE_BLOCK_SIZE 0x0400
+#define PALETTE_START 0x3f00
+#define PALETTE_SIZE 0x0020
 
 using namespace PPU;
 
@@ -29,6 +34,7 @@ namespace PPU
 	uint8_t OAMDMA;
 	 
 	bool odd_frame;
+	bool firstPPUADDRwrite = true;
 
 	uint8_t colors[256][4];
 
@@ -39,11 +45,33 @@ namespace PPU
 	uint8_t secOAM[8][4];
 
 	void initColors() {
+		srand(time(0));
 		for (int i = 0; i < 256; i++) {
 			for (int j = 0; j < 3; j++) {
 				colors[i][j] = rand() % 256;
 			}
 			colors[i][3] = 255;
+		}
+	}
+
+	// writes data to current vram address
+	void writeVRAM(uint8_t data) {
+		// if writing to patterns table
+		if (v < NAMETABLE_START) {
+			uint8_t* patts = (uint8_t*) patterns[v / PATTERN_SIZE];
+			patts[v % PATTERN_SIZE] = data;
+		} else if (v < PALETTE_START) {
+			printf("nametable write %d at %x\n", data, v);
+			// if writing to nametables
+			// % 4 since the 5th nametable is a mirror of the first
+			uint8_t* names = nametables[((v - NAMETABLE_START) / NAMETABLE_BLOCK_SIZE) % 4];
+			names[v % NAMETABLE_BLOCK_SIZE] = data;
+		} else {
+			printf("palette write %d at %x\n", data, v);
+			// else writing to palettes
+			// % 8 since 0x3f20-0x3fff are mirrors of 0x3f00-0x3f1f
+			uint8_t* pals = palettes[((v - PALETTE_START) / 4) % 8];
+			pals[v % 4] = data;
 		}
 	}
 
@@ -62,11 +90,24 @@ namespace PPU
 	void writePPUSCROLL() {
 
 	}
+	// TODO verify this directly alters vram
 	void writePPUADDR() {
-
+		if (firstPPUADDRwrite) {
+			v = ((uint16_t) PPUADDR) << 8;
+			firstPPUADDRwrite = false;
+		} else {
+			v += PPUADDR;
+			firstPPUADDRwrite = true;
+			printf("vaddr: %x\n", v);
+		}
 	}
 	void writePPUDATA() {
-
+		writeVRAM(PPUDATA);
+		// increment based on PPUCTRL
+		if ((PPUCTRL >> 2) & 1 == 0)
+			v += 1;
+		else
+			v += 32;
 	}
 	void writeOAMDMA() {
 
@@ -119,8 +160,15 @@ namespace PPU
 			}
 	}
 
+	void printPals() {
+		for (int i = 0; i < 8; i++) {
+			printf("%d, %d, %d, %d\n", palettes[i][0], palettes[i][1], palettes[i][2], palettes[i][3]);
+		}
+	}
+
 	// dummy implementation for rendering only the background
 	void drawBackground() {
+		printPals();
 		for (int r = 0; r < 30; r++) {
 			for (int c = 0; c < 32; c++) {
 				uint16_t background = (nametables[PPUCTRL & 3][r*32 + c] * 2);

@@ -52,6 +52,7 @@ int main(int argc, char *argv[])
 		// Power NES
 		Core::power();
 		PPU::power();
+		Core::execute();
 		PPU::drawBackground();
 		
 		SDL_RenderPresent(renderer);
