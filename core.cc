@@ -38,6 +38,9 @@ namespace Core
 
 	uint8_t ppuReg = 0;
 	bool memAlt = false;
+
+	static uint32_t cc = 0;
+	uint64_t totalCyc = 0;
 	
 	uint16_t get_effective_addr(uint16_t addr)
 	{
@@ -782,11 +785,9 @@ namespace Core
 	{
 		// Initialize for NESTEST
 		static bool initialized = false;
-		static uint32_t cc;
 		if(!initialized)
 		{
 			initialized = true;
-			cc = 0;
 		}
 		
 		uint8_t opcode = mem_read(pc);
@@ -1940,8 +1941,18 @@ namespace Core
 			{
 				// Indirect jump
 				pc += 3;
-				uint16_t jmp_mem = (uint16_t) mem_read(pc-1) << 8 | mem_read(pc-2);
-				pc = (uint16_t) mem_read(jmp_mem + 1) << 8 | mem_read(jmp_mem);
+				uint16_t jmp_mem = ((uint16_t) mem_read(pc-1) << 8) | mem_read(pc-2);
+				uint16_t newPC = ((uint16_t) mem_read(jmp_mem + 1) << 8) | mem_read(jmp_mem);
+				printf("jmpmem is %x \n", jmp_mem);
+				if (jmp_mem&0x00ff == 0xff) {
+					//special page boundary case
+					newPC &= 0x00ff;
+					printf("lower byte %x\n", pc);
+					printf("should be 0200 %x \n", ((uint16_t)(uint8_t)mem_read(pc-1)) << 8);
+					newPC += ((uint16_t) mem_read(((uint16_t)(uint8_t)mem_read(pc-1))<<8))<<8;
+					printf("special case: pc is %x\n", newPC);
+				}
+				pc = newPC;
 				cyc+=5;
 				break;
 			}
@@ -1986,8 +1997,27 @@ namespace Core
 
 			default:
 			{
-				printf("Encountered invalid opcode %x on line %x!\n", opcode, pc);
-				dumpcore();
+				// weird nop handling
+				if (opcode == 0x0c || opcode == 0x1c || opcode == 0x3c || opcode == 0x5c || opcode == 0x7c || opcode == 0xdc || opcode == 0xfc) {
+					pc += 3;
+					cyc += 4;
+				} else if (opcode == 0x04 || opcode == 0x44 || opcode == 0x64) {
+					pc += 2;
+					cyc += 3;
+				} else if (opcode == 0x14 || opcode == 0x34 || opcode == 0x54 || opcode == 0x74 || opcode == 0xd4 || opcode == 0xf4) {
+					pc += 2;
+					cyc += 4;
+				} else if (opcode == 0x1a || opcode == 0x3a || opcode == 0x5a || opcode == 0x7a || opcode == 0xda || opcode == 0xfa) {
+					pc += 1;
+					cyc += 2;
+				} else if (opcode == 0x80) {
+					pc += 2;
+					cyc += 2;
+				} else {
+					printf("Encountered invalid opcode %x on line %x!\n", opcode, pc);
+					dumpcore();
+					exit(1);
+				}
 			} 
 		}
 		if (ppuReg > 0 && memAlt) {
@@ -2005,7 +2035,8 @@ namespace Core
 		}
 		ppuReg = 0;
 		memAlt = false;
-//		cyc += sics;	
+//		cyc += sics;
+		totalCyc += cyc;	
 		return cyc;
 	}
 
@@ -2018,7 +2049,7 @@ namespace Core
 		printf("X: %x\n", (uint8_t) x);
 		printf("Y: %x\n", (uint8_t) y);
 		//printf("Flags: N=%d, V=%d, D=%d, I=%d, Z=%d, C=%d\n", p.n, p.v, p.d, p.i, p.z, p.c);
-		printf("Cycles: %llu\n", cyc+7);
+		printf("Cycles: %llu\n", totalCyc+7);
 		uint8_t statusReg = (p.n<<7) | (p.v<<6)| (1<<5) | (p.d<<3) | (p.i<<2) | (p.z<<1) | p.c;
 		printf("Flag byte P:  %x\n", statusReg);
 /*
