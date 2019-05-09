@@ -37,6 +37,7 @@ namespace PPU
 	void writePPUSCROLL();
 	void writePPUADDR();
 	void writePPUDATA();
+	uint8_t* readPPUDATA();
 	void writeOAMDMA();
 		
 	uint8_t** readBackgroundPalette(int x, int y);
