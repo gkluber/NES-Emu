@@ -2021,6 +2021,7 @@ namespace Core
 			} 
 		}
 		if (ppuReg > 0 && memAlt) {
+			//printf("written data: %d\n", *data);
 			switch (ppuReg) {
 				case 1: writePPUCTRL(); break;
 				case 2: writePPUMASK(); break;

@@ -44,6 +44,7 @@ namespace Core
 	
 	extern Flags p;
 		
+	uint8_t mem_read(uint16_t addr);
 	void execute();
 	int step();
 	void dumpcore();	

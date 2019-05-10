@@ -77,13 +77,13 @@ namespace PPU
 			uint8_t* patts = (uint8_t*) patterns[v / PATTERN_SIZE];
 			patts[v % PATTERN_SIZE] = data;
 		} else if (v < PALETTE_START) {
-			printf("nametable write %d at %x\n", data, v);
+			//printf("nametable write %d at %x\n", data, v);
 			// if writing to nametables
 			// % 4 since the 5th nametable is a mirror of the first
 			uint8_t* names = nametables[((v - NAMETABLE_START) / NAMETABLE_BLOCK_SIZE) % 4];
 			names[v % NAMETABLE_BLOCK_SIZE] = data;
 		} else {
-			printf("palette write %d at %x\n", data, v);
+			//printf("palette write %d at %x\n", data, v);
 			// else writing to palettes
 			// % 8 since 0x3f20-0x3fff are mirrors of 0x3f00-0x3f1f
 			uint8_t* pals = palettes[((v - PALETTE_START) / 4) % 8];
@@ -99,13 +99,13 @@ namespace PPU
 			uint8_t* patts = (uint8_t*) patterns[v / PATTERN_SIZE];
 			return patts[v % PATTERN_SIZE];
 		} else if (v < PALETTE_START) {
-			printf("nametable read at %x\n", v);
+			//printf("nametable read at %x\n", v);
 			// if reading from nametables
 			// % 4 since the 5th nametable is a mirror of the first
 			uint8_t* names = nametables[((v - NAMETABLE_START) / NAMETABLE_BLOCK_SIZE) % 4];
 			return names[v % NAMETABLE_BLOCK_SIZE];
 		} else {
-			printf("palette read at %x\n", v);
+			//printf("palette read at %x\n", v);
 			// else reading from palettes
 			// % 8 since 0x3f20-0x3fff are mirrors of 0x3f00-0x3f1f
 			uint8_t* pals = palettes[((v - PALETTE_START) / 4) % 8];
@@ -123,7 +123,10 @@ namespace PPU
 
 	}
 	void writeOAMDATA() {
-
+		printf("OAMDATA altered: %x at %x\n", OAMDATA, OAMADDR);
+		OAM[OAMADDR / 4][OAMADDR % 4] = OAMDATA;
+		OAMADDR++;
+		OAMADDR %= 256;
 	}
 	void writePPUSCROLL() {
 
@@ -140,6 +143,7 @@ namespace PPU
 		}
 	}
 	void writePPUDATA() {
+		PPUDATA = PPUDATAmutable;
 		if ((PPUCTRL >> 2) & 1 == 0)
 			v -= 1;
 		else
@@ -165,7 +169,9 @@ namespace PPU
 		return &PPUDATAmutable;
 	}
 	void writeOAMDMA() {
-
+		printf("write OAMDMA %x00\n", OAMDMA);
+		for (int i = 0; i < 0xff; i++)
+			OAM[i / 4][i % 4] = Core::mem_read(OAMDMA + i);
 	}
 		
 	uint8_t** readBackgroundPalette(int x, int y) {
@@ -232,7 +238,7 @@ namespace PPU
 				drawTile(x, y, pattern0, pattern1, colors);
 			}
 		}
-		printPals();
+		//printPals();
 	}
 
 	inline void resetSecondaryOAM()
