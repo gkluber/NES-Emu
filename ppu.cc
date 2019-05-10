@@ -57,6 +57,18 @@ namespace PPU
 		}
 	}
 
+	void initRandomPalettes() {
+		for (int i = 0; i < 8; i++)
+			for (int j = 0; j < 4; j++)
+				palettes[i][j] = rand() % 256;
+	}
+	
+	void initRandomNametables() {
+		for (int i = 0; i < 4; i++)
+			for (int j = 0; j < 1024; j++)
+				nametables[i][j] = rand() % 256;
+	}
+
 	// writes data to current vram address
 	void writeVRAM(uint8_t data) {
 		v %= 0x4000;
@@ -105,7 +117,7 @@ namespace PPU
 		printf("PPUCTRL altered: %x\n", PPUCTRL);
 	}
 	void writePPUMASK() {
-
+		
 	}
 	void writeOAMADDR() {
 
@@ -188,18 +200,15 @@ namespace PPU
 
 	// draws a 8x8 pixel region, pattern0 takes the 8byte pattern segment that affects bit 0 of the color
 	void drawTile(int x, int y, uint64_t pattern0, uint64_t pattern1, uint8_t** colors) {
-		//printf("%x\n", 
-		//SDL_RenderClear(renderer);
 		// draw pixels
 		for (int r = 0; r < 8; r++)
 			for (int c = 0; c < 8; c++) {
 				uint8_t index = r * 8 + c;
 				uint8_t color = ((((pattern1 >> index) & 1) << 1) + (pattern0 >> index)) & 3;
-				// TODO uncomment these lines when colors is properly created
-				SDL_RenderClear(renderer);
 				SDL_SetRenderDrawColor(renderer, colors[color][0], colors[color][1], colors[color][2], colors[color][3]);
-				//SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
-				SDL_RenderDrawPoint(renderer, x + c, y + r);
+				for (int i = 0; i < 2; i++)
+					for (int j = 0; j < 2; j++)
+						SDL_RenderDrawPoint(renderer, x + 2*c + i, y + 2*r + j);
 			}
 	}
 
@@ -211,18 +220,19 @@ namespace PPU
 
 	// dummy implementation for rendering only the background
 	void drawBackground() {
-		printPals();
 		for (int r = 0; r < 30; r++) {
 			for (int c = 0; c < 32; c++) {
 				uint16_t background = (nametables[PPUCTRL & 3][r*32 + c] * 2);
-				int x = c * 8;
-				int y = r * 8;
+				int x = c * 16;//8;
+				int y = r * 16;//8;
 				uint8_t** colors = readBackgroundPalette(x, y);
 				uint64_t pattern0 = patterns[(PPUCTRL >> 3) & 1][background];
 				uint64_t pattern1 = patterns[(PPUCTRL >> 3) & 1][background + 1];
+				//printf("%08x%08x\n", pattern0, pattern1);
 				drawTile(x, y, pattern0, pattern1, colors);
 			}
 		}
+		printPals();
 	}
 
 	inline void resetSecondaryOAM()
@@ -243,6 +253,8 @@ namespace PPU
 		PPUDATA = 0;
 		odd_frame = false;
 		initColors();
+		initRandomPalettes();
+		initRandomNametables();
 	}
 	
 	void reset()
@@ -253,5 +265,11 @@ namespace PPU
 		PPUSCROLL = 0;
 		PPUDATA = 0;
 		odd_frame = false;
+	}
+
+	void randomizeGUI() {
+		initRandomNametables();
+		drawBackground();
+		SDL_RenderPresent(renderer);
 	}
 }

@@ -65,7 +65,7 @@ namespace Core
 	void mem_write(uint16_t addr, uint8_t data)
 	{
 		if (addr == 0x07ff) {
-				printf("WHOOOOO %d\n", data);
+				//printf("WHOOOOO %d\n", data);
 		}
 		addr = get_effective_addr(addr);
 		switch(addr)
@@ -586,7 +586,7 @@ namespace Core
 
 	//BIT Bit Test
 	inline void BIT () {
-		printf("here %x addr of %x \n", mem_read(*data), *data); //TODO
+		//printf("here %x addr of %x \n", mem_read(*data), *data); //TODO
 		p.n = ((int8_t)(*data))<0;
 		p.v = (1 << 6) & (*data);
 		uint8_t res = a & (*data);
@@ -602,7 +602,7 @@ namespace Core
 		bool sign = result >> 7; // resultant 
 		p.n = result < 0;
 		p.z = result == 0;
-		printf("test val %x %x %x\n" ,(uint32_t)p.c, (uint32_t)((uint8_t)(*data)), ((uint32_t)((uint8_t)a)));
+		//printf("test val %x %x %x\n" ,(uint32_t)p.c, (uint32_t)((uint8_t)(*data)), ((uint32_t)((uint8_t)a)));
 		p.c = ((uint32_t)p.c + (uint32_t)((uint8_t)(*data)) + (uint32_t)a) > 255;
 		int32_t testSum = (int32_t)(p.c + (uint32_t)(*data) + a);
 		p.v = testSum >127 || testSum<-128;
@@ -777,7 +777,7 @@ namespace Core
 		// TODO will also need to work with the SDL2 GUI
 		uint32_t cc = 0;
 		//while(true)
-		for (int i = 0; i < 10000; i++)
+		for (int i = 0; i < 50000; i++)
 			step();
 	}
 	
@@ -1943,14 +1943,14 @@ namespace Core
 				pc += 3;
 				uint16_t jmp_mem = ((uint16_t) mem_read(pc-1) << 8) | mem_read(pc-2);
 				uint16_t newPC = ((uint16_t) mem_read(jmp_mem + 1) << 8) | mem_read(jmp_mem);
-				printf("jmpmem is %x \n", jmp_mem);
+				//printf("jmpmem is %x \n", jmp_mem);
 				if (jmp_mem&0x00ff == 0xff) {
 					//special page boundary case
 					newPC &= 0x00ff;
-					printf("lower byte %x\n", pc);
-					printf("should be 0200 %x \n", ((uint16_t)(uint8_t)mem_read(pc-1)) << 8);
+					//printf("lower byte %x\n", pc);
+					//printf("should be 0200 %x \n", ((uint16_t)(uint8_t)mem_read(pc-1)) << 8);
 					newPC += ((uint16_t) mem_read(((uint16_t)(uint8_t)mem_read(pc-1))<<8))<<8;
-					printf("special case: pc is %x\n", newPC);
+					//printf("special case: pc is %x\n", newPC);
 				}
 				pc = newPC;
 				cyc+=5;

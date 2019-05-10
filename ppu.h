@@ -45,4 +45,5 @@ namespace PPU
 	void power();
 	void reset();
 	void drawBackground();
+	void randomizeGUI();
 }
