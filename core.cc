@@ -783,13 +783,6 @@ namespace Core
 	
 	int step()
 	{
-		// Initialize for NESTEST
-		static bool initialized = false;
-		if(!initialized)
-		{
-			initialized = true;
-		}
-		
 		uint8_t opcode = mem_read(pc);
 		if(DEBUG) {
 			printf("Reading instruction %x on line %lx\n", opcode, pc);
