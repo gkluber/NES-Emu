@@ -143,6 +143,9 @@ namespace PPU
 		}
 	}
 	void writePPUDATA() {
+	//	for (int i=0; i<100; i++) {
+		//	printf("WRITITING %x\n", PPUDATAmutable);
+	//	}
 		PPUDATA = PPUDATAmutable;
 		if ((PPUCTRL >> 2) & 1 == 0)
 			v -= 1;

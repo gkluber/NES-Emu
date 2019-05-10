@@ -6,8 +6,8 @@
 #include <cstdio>
 #include <cstring>
 #include <stdint.h>
-
 #include <SDL2/SDL.h>
+#include "nt.h"
 
 const unsigned int IMG_WIDTH = 256;
 const unsigned int IMG_HEIGHT = 240;
@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
 		screen = SDL_GetWindowSurface(window);
 		
 		//SDL_UpdateWindowSurface(window);
-		
+
 		// Read file
 		if(argc != 3)
 		{
@@ -158,6 +158,12 @@ int main(int argc, char *argv[])
 		{
 			std::cout << "Format: ./nes cpu <filename>" << std::endl;
 			return 0;
+		}
+		NESTEST = false;
+		std::size_t nt = (std::string (argv[2])).find("nestest.nes");
+		if (nt!=std::string::npos) {
+			NESTEST = true;
+			//starts the pc at c000 and prints core trace
 		}
 		read_ines(argv[2]);
 		Core::power();

@@ -4,7 +4,6 @@
 #include "ppu.h"
 #include "util.h"
 #include "controller.h"
-
 #include <cstdio>
 #include <iostream>
 
@@ -12,6 +11,7 @@ using namespace Core;
 using namespace APU;
 using namespace PPU;
 using namespace CONTROLLER;
+extern bool NESTEST;
 
 namespace Core
 {
@@ -754,18 +754,16 @@ namespace Core
 		//printf("finally data %x\n", *data);
 		pc += 2;
 	}
+
 	// post-indexed indirect mode (uses y)
 	bool iiy() {
-		//printf("val at 0x00ff is %x at 0x0000 is %x\n", mem_read(0x00ff), mem_read(0x0000));
 		uint8_t imm = (uint8_t)(mem_read(pc+1));
-		//printf("imm is %x and imm+1 is %x\n", imm, (uint8_t)(imm+1));
 		uint16_t addr = ((((uint16_t) (uint8_t)(mem_read((uint8_t)(imm+1)))) << 8)) + mem_read(imm) + ((uint8_t) y);
-		//printf("then addr is %x which is %x + %x + %x\n", addr, (uint16_t) (uint8_t)(mem_read((uint8_t)(imm+1))), mem_read(imm),(uint8_t) y);
 		data = (int8_t *) mem_ptr(addr);
-		//printf("and data is %x\n", *data);
 		pc += 2;
 		return ((addr) & 0xFF00) != (((((uint16_t) mem_read((uint8_t)(imm+1)))<<8)+ mem_read(imm)) & 0xFF00);
 	}
+
 	//for branch instructions, call after updating pc normally
 	bool branchPageCross (int8_t offset) {		
 		return ((pc) & 0xFF00) != ((pc+offset) & 0xFF00);
@@ -2056,7 +2054,7 @@ namespace Core
 		std::cout << std::endl;
 */		
 		if  (NESTEST) {
-			printf("02h = %x and 03h = %x\n", mem_read(2), mem_read(3));
+	//		printf("02h = %x and 03h = %x\n", mem_read(2), mem_read(3));
 		}
 		//uint16_t loc = 0x6004;
 //		printf("Now to check for correctness...\n");
