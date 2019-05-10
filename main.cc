@@ -11,8 +11,8 @@
 
 const unsigned int IMG_WIDTH = 256;
 const unsigned int IMG_HEIGHT = 240;
-const unsigned int SCREEN_WIDTH = 640;
-const unsigned int SCREEN_HEIGHT = 480;
+const unsigned int SCREEN_WIDTH = 512;//640;
+const unsigned int SCREEN_HEIGHT = 480;//480;
 
 int main(int argc, char *argv[])
 {
@@ -80,6 +80,7 @@ int main(int argc, char *argv[])
 						}
 						case SDLK_RETURN: {
 							kbState |= (1<<3);
+							PPU::randomizeGUI();
 							break;
 						}
 						case SDLK_w: {
